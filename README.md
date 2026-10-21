@@ -1,4 +1,4 @@
-# Bot Afiliado (Discord + Telegram)
+# Bot Afiliado (Discord, Telegram, WhatsApp e Instagram)
 
 Bot em **Node.js** que divulga ofertas com links de afiliado da Shopee, AliExpress e Mercado Livre no Discord e no Telegram, usando somente APIs oficiais (sem scraping). Inclui um **painel web** para configurar tudo sem editar arquivos.
 
@@ -37,6 +37,8 @@ Tudo fica no volume `botafiliado-data` (configurações, senha do painel em hash
 | Início | Status do Discord/Telegram, próxima e última rodada automática, ligar/desligar e "Rodar agora" |
 | Postagem automática | Palavras-chave (rodízio), intervalo, ofertas por rodada, horário, ordem, nota/vendas/comissão mínimas, preço máximo, canal próprio |
 | Mensagem | Texto acima da oferta e quais destinos recebem as postagens |
+| WhatsApp | Liga o kit pronto para o Canal do WhatsApp no seu privado do Telegram |
+| Instagram | Token, limite diário, palavra do "comente QUERO", textos do direct e hashtags |
 | Discord / Telegram | Tokens e IDs, testar conexão, registrar comandos de barra |
 | Lojas e APIs | Credenciais da Shopee, AliExpress e Mercado Livre, com teste por link |
 | Postar link | Pré-visualiza ou publica qualquer produto nos destinos ativos |
@@ -82,6 +84,29 @@ Com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` preenchidos, toda oferta do `/post
 2. Adicione o bot ao seu canal como **administrador** com permissão de publicar mensagens.
 3. Em `TELEGRAM_CHAT_ID` use `@nomedocanal` (canal público) ou o ID numérico `-100...` (canal privado).
 4. Confira sem postar nada: `node testar-telegram.js`.
+
+## Canal do WhatsApp
+
+Canais do WhatsApp **não têm API oficial** para publicar, e as bibliotecas que imitam o WhatsApp Web arriscam banir o número. Por isso o bot faz o trabalho pesado e deixa só o envio com você: com **WhatsApp → Mandar cada oferta…** ligado, toda oferta e todo cupom publicados também chegam no seu **privado do Telegram** com:
+
+- a foto do produto (segure para salvar);
+- o texto já formatado para o WhatsApp (`*negrito*`, `~preço antigo~`, link de afiliado) num bloco que **copia com um toque**;
+- o botão **📲 Abrir no WhatsApp**, que abre o WhatsApp com o texto pronto (serve para grupos e contatos).
+
+No canal: anexe a foto, cole o texto e envie. Precisa do token do Telegram e do **Seu ID (dono)**. O botão **Mandar exemplo no meu privado** testa sem postar nada.
+
+## Instagram ("comente QUERO")
+
+Link na legenda do Instagram não é clicável; no direct é. Com **Instagram → Publicar ofertas** ligado, cada oferta vira um post de foto com a chamada "💬 Comente QUERO que eu te mando o link no direct!". A cada 2 minutos o bot lê os comentários dos posts dele dos últimos 7 dias e, para quem comentou a palavra, manda **o link de afiliado no direct** (resposta privada a comentário, uma por comentário) e responde em público "Te mandei o link no direct! 📩". Palavra, textos, hashtags e limite diário (padrão 10 posts/dia; acima disso a oferta vai só para os outros destinos) ficam no painel. Cupons não vão para o Instagram.
+
+Configuração (API oficial do Instagram com login do Instagram):
+
+1. No app do Instagram, mude para conta **Profissional** (comercial ou criador) e, em Configurações → Mensagens e respostas a stories → Ferramentas conectadas, ligue **Permitir acesso às mensagens**.
+2. Em developers.facebook.com crie um app do tipo **Empresa**, adicione o produto **Instagram** → **Configuração da API com login do Instagram**.
+3. Adicione a sua conta e clique em **Gerar token**, aceitando as permissões `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_comments` e `instagram_business_manage_messages`. Cole o token em **Instagram → Token de acesso** e use **Testar conta**.
+4. **Importante:** com o app em modo de desenvolvimento a Meta só deixa mandar direct para pessoas com função no app (você e testadores). Para responder qualquer seguidor, peça **Acesso avançado** a `instagram_business_manage_comments` e `instagram_business_manage_messages` na **Análise do app** (a Meta pede vídeo mostrando o uso e, às vezes, verificação da empresa).
+
+O token vale 60 dias e o bot o renova sozinho a cada 7. A foto precisa ser JPEG num endereço público: as fotos das lojas já são; se o Instagram recusar a foto de um produto, ele só não vai para o Instagram e o erro aparece nos logs. O bot consulta os comentários em vez de usar webhook porque o painel normalmente roda na rede local, sem HTTPS público.
 
 ## Postagem automática (Shopee)
 

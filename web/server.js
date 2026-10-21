@@ -7,6 +7,8 @@ import { recentLogs } from '../utils/logs.js';
 import { resolveProduct } from '../services/index.js';
 import { searchShopeeOffers } from '../services/shopee.js';
 import { checkTelegram, telegramConfigured } from '../publishers/telegram.js';
+import { sendWhatsappOffer, whatsappConfigured } from '../publishers/whatsapp.js';
+import { checkInstagram, instagramConfigured } from '../publishers/instagram.js';
 import { destinations, publishOffer } from '../publishers/index.js';
 import { registerCommands } from '../commands/index.js';
 import { storesStatus } from '../services/stores.js';
@@ -80,6 +82,7 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       status: {
         discord: bot.status(),
         telegram: { configured: telegramConfigured(), enabled: process.env.POST_TELEGRAM !== 'false' },
+        instagram: { configured: instagramConfigured(), enabled: process.env.POST_INSTAGRAM === 'true', replies: store.countInstagramReplies() },
         destinations: destinations(channelId),
         autopost: autopost.state(),
         stores: storesStatus(),
@@ -110,6 +113,19 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       if (!result.canPost) throw new Error(`${result.bot} não pode postar em "${result.chat}" (papel: ${result.status}). Adicione-o como administrador.`);
       return { message: `${result.bot} pode postar em "${result.chat}".` };
     },
+    async 'test-whatsapp'() {
+      if (!whatsappConfigured()) throw new Error('Preencha o token do Telegram e o seu ID de dono na página Telegram.');
+      await sendWhatsappOffer({ platform: 'shopee', platformLabel: 'Shopee', id: 'exemplo', title: 'Produto de exemplo (teste do painel)', price: 'R$ 49,90',
+        priceValue: 49.9, discount: 30, rating: 4.8, sales: 1200, affiliateUrl: 'https://s.shopee.com.br/exemplo' });
+      return { message: 'Mandei um exemplo no seu privado do Telegram. Toque no texto para copiar e cole no Canal do WhatsApp.' };
+    },
+    async 'test-instagram'() {
+      if (!instagramConfigured()) throw new Error('Preencha o token de acesso do Instagram.');
+      const result = await checkInstagram();
+      const tipo = { BUSINESS: 'comercial', MEDIA_CREATOR: 'criador de conteúdo' }[result.accountType];
+      if (!tipo) throw new Error(`@${result.username} não é uma conta Profissional (tipo: ${result.accountType ?? 'desconhecido'}). Mude para conta comercial ou de criador no app do Instagram.`);
+      return { message: `Conectado como @${result.username} (conta ${tipo}). ${store.countInstagramReplies()} link(s) já enviados no direct.` };
+    },
     async 'test-shopee'() {
       const { products } = await searchShopeeOffers('fone bluetooth', { limit: 1 });
       return { message: 'API da Shopee respondeu.', posted: products.slice(0, 1).map(preview) };
@@ -136,7 +152,7 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       const product = await resolveProduct(String(url ?? ''), { store });
       if (!force && store.wasPosted(product.platform, product.id)) throw new Error('Este produto já foi postado. Marque "postar mesmo assim" para repetir.');
       const channelId = process.env.CANAL_POSTAGEM_ID;
-      const { sent, errors } = await publishOffer(product, { client: bot.getClient(), discordChannelId: channelId });
+      const { sent, errors } = await publishOffer(product, { client: bot.getClient(), discordChannelId: channelId, store });
       if (store.wasPosted(product.platform, product.id)) store.unmarkPosted(product.platform, product.id);
       store.markPosted(product, channelId || 'telegram');
       return { message: `Publicado em ${sent.join(' e ')}.`, posted: [preview(product)], errors };

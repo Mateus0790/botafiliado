@@ -10,6 +10,8 @@ export const SECTIONS = [
   { id: 'mensagem', title: 'Mensagem', description: 'Como as ofertas aparecem no Discord e no Telegram.' },
   { id: 'discord', title: 'Discord', description: 'Bot do Discord Developer Portal. Mudar o token reconecta o bot.' },
   { id: 'telegram', title: 'Telegram', description: 'Bot do @BotFather, administrador do canal com permissão de publicar. Com o seu ID de dono, você cola links no privado do bot e recebe a prévia com ✅ Postar / 🗑 Descartar.' },
+  { id: 'whatsapp', title: 'WhatsApp', description: 'Canais do WhatsApp não têm API oficial para publicar, e as bibliotecas não oficiais arriscam banir o número. Por isso o bot manda cada oferta no seu privado do Telegram com a foto e o texto já formatado para o WhatsApp: toque no texto para copiar, salve a foto e poste no canal. Precisa do token do Telegram e do seu ID de dono.' },
+  { id: 'instagram', title: 'Instagram', description: 'API oficial do Instagram (login do Instagram) com conta Profissional. O bot publica a foto da oferta com "Comente QUERO" na legenda e, a cada 2 minutos, manda o link no direct de quem comentou a palavra-chave e responde o comentário. O token de 60 dias é renovado sozinho.' },
   { id: 'shopee', title: 'Shopee', description: 'Shopee Affiliate Open API. Entra na postagem automática e na manual.' },
   { id: 'aliexpress', title: 'AliExpress', description: 'AliExpress Affiliate Open Platform. Entra na postagem automática e na manual.' },
   { id: 'mercadolivre', title: 'Mercado Livre', description: 'App do developers.mercadolivre.com.br para buscar produtos e preços. Para o link de afiliado, escolha o modo: parâmetros matt_word/matt_tool (oficial) ou meli.la pelo Linkbuilder (não oficial: o bot usa um navegador com perfil próprio; faça o login uma vez pelo botão "Fazer login do Mercado Livre" — no PC abre o navegador na tela, no Docker abre a tela do navegador do container no seu navegador, com senha). Se a sessão expirar, o bot para de postar Mercado Livre e avisa no seu privado do Telegram.' },
@@ -43,6 +45,17 @@ export const FIELDS = [
   { key: 'COUPON_HEADER', section: 'mensagem', label: 'Texto acima dos cupons', type: 'text', maxLength: 120, default: '🎟️ CUPOM DE DESCONTO!' },
   { key: 'POST_DISCORD', section: 'mensagem', label: 'Publicar no Discord', type: 'bool', default: 'true' },
   { key: 'POST_TELEGRAM', section: 'mensagem', label: 'Publicar no Telegram', type: 'bool', default: 'true' },
+
+  { key: 'POST_WHATSAPP', section: 'whatsapp', label: 'Mandar cada oferta e cupom prontos para o Canal do WhatsApp no seu privado do Telegram', type: 'bool', default: 'false' },
+
+  { key: 'POST_INSTAGRAM', section: 'instagram', label: 'Publicar ofertas no Instagram', type: 'bool', default: 'false' },
+  { key: 'INSTAGRAM_TOKEN', section: 'instagram', label: 'Token de acesso (longa duração, gerado no app da Meta)', type: 'secret', pattern: /^[\w.|-]{20,}$/, default: '' },
+  { key: 'INSTAGRAM_MAX_PER_DAY', section: 'instagram', label: 'Máximo de posts no Instagram por dia (o resto vai só para os outros destinos)', type: 'number', min: 1, max: 50, default: '10' },
+  { key: 'INSTAGRAM_KEYWORD', section: 'instagram', label: 'Palavra que a pessoa comenta para receber o link', type: 'text', maxLength: 30, default: 'QUERO' },
+  { key: 'INSTAGRAM_COMMENT_REPLY', section: 'instagram', label: 'Mandar o link no direct de quem comentar a palavra', type: 'bool', default: 'true' },
+  { key: 'INSTAGRAM_DM', section: 'instagram', label: 'Início da mensagem no direct (o bot completa com o produto, preço e link)', type: 'text', maxLength: 200, default: 'Oi! Aqui está o link da oferta 👇' },
+  { key: 'INSTAGRAM_REPLY', section: 'instagram', label: 'Resposta pública no comentário (vazio = não responde)', type: 'text', maxLength: 150, default: 'Te mandei o link no direct! 📩' },
+  { key: 'INSTAGRAM_HASHTAGS', section: 'instagram', label: 'Hashtags (uma por linha, sem #)', type: 'list', default: 'achadinhos,promoção,ofertas' },
 
   { key: 'DISCORD_TOKEN', section: 'discord', label: 'Token do bot', type: 'secret', default: '' },
   { key: 'DISCORD_CLIENT_ID', section: 'discord', label: 'Application ID', type: 'text', pattern: /^\d{15,25}$/, default: '' },

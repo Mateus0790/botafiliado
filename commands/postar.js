@@ -10,7 +10,7 @@ export async function execute(interaction, { cache }) {
   const product = await resolveProduct(interaction.options.getString('link', true), { store: cache });
   if (cache.wasPosted(product.platform, product.id)) throw new Error('Este produto já foi postado e foi bloqueado pelo anti-duplicidade.');
   const channelId = process.env.CANAL_POSTAGEM_ID;
-  const { sent, errors } = await publishOffer(product, { client: interaction.client, discordChannelId: channelId });
+  const { sent, errors } = await publishOffer(product, { client: interaction.client, discordChannelId: channelId, store: cache });
   cache.markPosted(product, channelId || 'telegram');
   const where = sent.map((name) => (name === 'Discord' ? `<#${channelId}>` : name)).join(' e ');
   await interaction.editReply(`Oferta publicada em ${where}.${errors.length ? `\n⚠️ ${errors.join('\n⚠️ ')}` : ''}`);
