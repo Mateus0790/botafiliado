@@ -14,11 +14,8 @@ services:
       # Tela do navegador durante o login do Mercado Livre (modo meli.la); só fica ativa enquanto o login
       # estiver aberto pelo painel, com senha. Remova esta linha se usar o modo parâmetros.
       - "6080:6080"
-    # Opcional: tudo pode ser configurado pelo painel. O .env, se existir, serve de valor inicial
-    # (use o config-exportada.env gerado por "node exportar-config.js" no PC, renomeado para .env).
-    env_file:
-      - path: .env
-        required: false
+    # Tudo é configurado pelo painel. Para começar com um .env (ex.: o config-exportada.env do PC),
+    # use também o docker-compose.env.yml (veja o README).
     environment:
       TZ: America/Sao_Paulo
       # Descomente para fixar a senha do painel (senão ela é criada no primeiro acesso):

@@ -24,11 +24,11 @@ docker compose logs botafiliado   # mostra o código de primeiro acesso
 3. Preencha as credenciais em **Discord**, **Telegram** e **Lojas e APIs**, use os botões de teste e clique em **Registrar comandos** na página do Discord.
 4. Em **Postagem automática**, defina as palavras-chave, filtros e horário, e ligue.
 
-**Levando a configuração deste PC para o Docker:** no PC, rode `node exportar-config.js`; ele gera `config-exportada.env` com tudo o que está no `.env` e no painel. Copie para a pasta do bot no servidor com o nome `.env` e suba o container. O arquivo contém tokens: apague-o do PC depois. A senha do painel e o histórico não vão junto.
+**Levando a configuração deste PC para o Docker:** no PC, rode `node exportar-config.js`; ele gera `config-exportada.env` com tudo o que está no `.env` e no painel. Copie para a pasta do bot no servidor com o nome `.env` e suba o container com `docker compose -f docker-compose.yml -f docker-compose.env.yml up -d` (no ZimaOS/CasaOS, que não usa arquivos extras, preencha pelo painel). O arquivo contém tokens: apague-o do PC depois. A senha do painel e o histórico não vão junto.
 
 **Mercado Livre (meli.la) no Docker:** a imagem traz Chromium, uma tela virtual (Xvfb) e noVNC. O perfil do navegador do PC não serve no container (o Windows criptografa os cookies), então faça o login lá: painel → Lojas e APIs → Mercado Livre → **Fazer login do Mercado Livre**. O painel mostra um link (porta 6080) e uma senha de 8 caracteres; abra no seu navegador, entre no Mercado Livre, confira o Gerador de links e feche a janela do navegador (ou clique em **Concluir login**). O noVNC só fica ligado enquanto o login está aberto (no máximo 20 min) e só aceita a senha mostrada. Depois, **Testar sessão meli.la**. Para usar só o modo parâmetros, remova a porta 6080 do compose. **Não rode o bot no PC e no Docker ao mesmo tempo**: com o mesmo token, os dois postam em dobro e o privado do Telegram só responde em um deles.
 
-Tudo fica no volume `botafiliado-data` (configurações, senha do painel em hash scrypt e histórico). O `.env` é opcional: se existir, serve de valor inicial; o que for salvo no painel tem prioridade. Para atualizar: `docker compose pull && docker compose up -d` (os dados são mantidos).
+Tudo fica no volume `botafiliado-data` (configurações, senha do painel em hash scrypt e histórico). O `.env` é opcional (via `docker-compose.env.yml`): serve de valor inicial; o que for salvo no painel tem prioridade. Para atualizar: `docker compose pull && docker compose up -d` (os dados são mantidos).
 
 ### O painel
 
