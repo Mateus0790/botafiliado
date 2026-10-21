@@ -37,7 +37,7 @@ Tudo fica no volume `botafiliado-data` (configurações, senha do painel em hash
 | Início | Status do Discord/Telegram, próxima e última rodada automática, ligar/desligar e "Rodar agora" |
 | Postagem automática | Palavras-chave (rodízio), intervalo, ofertas por rodada, horário, ordem, nota/vendas/comissão mínimas, preço máximo, canal próprio |
 | Mensagem | Texto acima da oferta e quais destinos recebem as postagens |
-| WhatsApp | Liga o kit pronto para o Canal do WhatsApp no seu privado do Telegram |
+| WhatsApp | Kit pronto no privado do Telegram, ou conexão por QR code com escolha dos canais e grupos |
 | Instagram | Token, limite diário, palavra do "comente QUERO", textos do direct e hashtags |
 | Discord / Telegram | Tokens e IDs, testar conexão, registrar comandos de barra |
 | Lojas e APIs | Credenciais da Shopee, AliExpress e Mercado Livre, com teste por link |
@@ -85,15 +85,20 @@ Com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` preenchidos, toda oferta do `/post
 3. Em `TELEGRAM_CHAT_ID` use `@nomedocanal` (canal público) ou o ID numérico `-100...` (canal privado).
 4. Confira sem postar nada: `node testar-telegram.js`.
 
-## Canal do WhatsApp
+## WhatsApp (Canais e grupos)
 
-Canais do WhatsApp **não têm API oficial** para publicar, e as bibliotecas que imitam o WhatsApp Web arriscam banir o número. Por isso o bot faz o trabalho pesado e deixa só o envio com você: com **WhatsApp → Mandar cada oferta…** ligado, toda oferta e todo cupom publicados também chegam no seu **privado do Telegram** com:
+A página **WhatsApp** do painel tem dois modos, em **Como publicar**:
 
-- a foto do produto (segure para salvar);
-- o texto já formatado para o WhatsApp (`*negrito*`, `~preço antigo~`, link de afiliado) num bloco que **copia com um toque**;
-- o botão **📲 Abrir no WhatsApp**, que abre o WhatsApp com o texto pronto (serve para grupos e contatos).
+**Kit no privado do Telegram** (padrão, sem risco). Canais do WhatsApp não têm API oficial para publicar, então o bot manda cada oferta e cupom no seu **privado do Telegram** com a foto (segure para salvar), o texto já formatado para o WhatsApp (`*negrito*`, `~preço antigo~`, link de afiliado) num bloco que **copia com um toque** e o botão **📲 Abrir no WhatsApp**. No canal: anexe a foto, cole o texto e envie. Precisa do token do Telegram e do **Seu ID (dono)**.
 
-No canal: anexe a foto, cole o texto e envie. Precisa do token do Telegram e do **Seu ID (dono)**. O botão **Mandar exemplo no meu privado** testa sem postar nada.
+**Conectar por QR code** (não oficial). O bot entra no seu WhatsApp como um **aparelho conectado** (igual ao WhatsApp Web, pela biblioteca Baileys) e posta sozinho, com foto, nos canais e grupos escolhidos:
+
+1. Escolha "Conectar por QR code", ligue **Publicar ofertas e cupons no WhatsApp** e salve.
+2. Clique em **Conectar por QR code** e escaneie no celular: WhatsApp → Aparelhos conectados → Conectar aparelho.
+3. Em **Onde postar**, marque os canais (📢, só aparecem os que você é dono ou administrador) e grupos (👥) e clique em **Salvar**. A lista de canais vem do que o WhatsApp sincroniza depois do login; se um canal não aparecer, cole o link dele (`https://whatsapp.com/channel/…`) e clique em **Adicionar canal**.
+4. **Mandar exemplo no meu privado** manda um exemplo para a sua própria conversa ("Você"), sem postar nos canais.
+
+A sessão fica no volume (`data/whatsapp_auth`) e o bot reconecta sozinho ao reiniciar. Entre um destino e outro ele espera alguns segundos. **Atenção:** o WhatsApp não autoriza bots assim e pode restringir ou banir o número; use de preferência um número só para isso e não exagere na quantidade de posts. Se o aparelho for desconectado no celular, é só escanear de novo.
 
 ## Instagram ("comente QUERO")
 

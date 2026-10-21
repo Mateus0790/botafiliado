@@ -141,7 +141,7 @@ function route() {
   const container = document.getElementById('page');
   container.replaceChildren();
   window.scrollTo(0, 0);
-  const renderers = { inicio: renderHome, postar: renderPost, cupons: renderCoupons, historico: renderHistory, logs: renderLogs };
+  const renderers = { inicio: renderHome, whatsapp: renderWhatsapp, postar: renderPost, cupons: renderCoupons, historico: renderHistory, logs: renderLogs };
   (renderers[page.id] ?? renderSettings)(container, page);
 }
 window.addEventListener('hashchange', route);
@@ -319,6 +319,101 @@ function renderSettings(container, page) {
   if (page.id === 'sistema') cards.push(passwordCard());
   if (page.id === 'lojas') cards.unshift(storesCard(() => route()));
   container.replaceChildren(h('div', { class: 'stack' }, cards));
+}
+
+// ---------- WhatsApp por QR code ----------
+const WA_STATES = { conectado: ['conectado', 'ok'], 'aguardando-qr': ['aguardando QR code', 'warn'], conectando: ['conectando', 'warn'], desconectado: ['desconectado', 'off'] };
+
+function renderWhatsapp(container, page) {
+  renderSettings(container, page);
+  const mode = state.fields.find((field) => field.key === 'WHATSAPP_MODE');
+  if ((mode.value || mode.default) !== 'web') return;
+  const stack = container.querySelector('.stack');
+  const connection = h('section', { class: 'card' });
+  const targetsCard = h('section', { class: 'card' });
+  stack.append(connection, targetsCard);
+  let last = null;
+
+  const post = async (action, body = {}) => {
+    const data = await api(`/api/whatsapp/${action}`, body);
+    if (!data.ok) throw new Error(data.message);
+    return data;
+  };
+
+  function drawConnection(wa) {
+    const [text, kind] = WA_STATES[wa.state] ?? [wa.state, 'off'];
+    const connect = h('button', { class: 'btn primary', onclick: async (event) => {
+      try { drawConnection(await withBusy(event.currentTarget, () => post('connect'))); } catch (error) { toast(error.message, 'error'); }
+    } }, 'Conectar por QR code');
+    const disconnect = h('button', { class: 'btn', onclick: async (event) => {
+      try { drawConnection(await withBusy(event.currentTarget, () => post('disconnect'))); } catch (error) { toast(error.message, 'error'); }
+    } }, 'Desconectar');
+    const logout = h('button', { class: 'btn ghost', onclick: async (event) => {
+      if (!confirm('Apagar a sessão? Será preciso escanear o QR code de novo.')) return;
+      try { drawConnection(await withBusy(event.currentTarget, () => post('disconnect', { logout: true }))); } catch (error) { toast(error.message, 'error'); }
+    } }, 'Sair e apagar sessão');
+    const busy = wa.state === 'conectado' || wa.state === 'aguardando-qr' || wa.state === 'conectando';
+    connection.replaceChildren(...[
+      h('h2', {}, 'Conexão'),
+      h('div', { class: 'stat-value' }, statusPill(text, kind)),
+      h('p', { class: 'muted' }, wa.detail),
+      wa.qr ? h('img', { class: 'qr', src: wa.qr, alt: 'QR code para conectar o WhatsApp' }) : null,
+      wa.qr ? h('p', { class: 'muted' }, 'No celular: WhatsApp → ⋮ (ou Configurações) → Aparelhos conectados → Conectar aparelho. O QR code muda a cada ~20 s.') : null,
+      h('div', { class: 'actions' }, busy ? disconnect : connect, logout)].filter(Boolean));
+    if (wa.state === 'conectado' && last !== 'conectado') loadTargets(wa.targets);
+    if (wa.state !== 'conectado') drawTargets(wa.targets, null);
+    last = wa.state;
+  }
+
+  function drawTargets(saved, available, error) {
+    const chosen = new Map(saved.map((target) => [target.id, target]));
+    const items = [...(available ?? [])];
+    for (const target of saved) if (!items.some((item) => item.id === target.id)) items.push(target);
+    const list = items.length
+      ? h('div', { class: 'checks wa-targets' }, items.map((item) => h('label', { class: 'check' },
+        h('input', { type: 'checkbox', value: item.id, checked: chosen.has(item.id), 'data-name': item.name, 'data-type': item.type }),
+        `${item.type === 'grupo' ? '👥' : '📢'} ${item.name}`)))
+      : h('p', { class: 'muted' }, available ? 'Nenhum canal ou grupo encontrado. Cole o link do canal abaixo.' : 'Conecte o WhatsApp para ver seus canais e grupos.');
+    const link = h('input', { type: 'url', placeholder: 'https://whatsapp.com/channel/…' });
+    const add = h('button', { class: 'btn', type: 'button', onclick: async (event) => {
+      try {
+        const { item } = await withBusy(event.currentTarget, () => post('find-channel', { link: link.value }));
+        drawTargets([...currentChoice(), item], [...(available ?? []).filter((other) => other.id !== item.id), item]);
+        toast(`Canal "${item.name}" adicionado. Clique em Salvar.`);
+      } catch (err) { toast(err.message, 'error'); }
+    } }, 'Adicionar canal');
+    const save = h('button', { class: 'btn primary', type: 'button', onclick: async (event) => {
+      try {
+        const { targets } = await withBusy(event.currentTarget, () => post('targets', { targets: currentChoice() }));
+        toast(targets.length ? `Vai postar em: ${targets.map((target) => target.name).join(', ')}.` : 'Nenhum destino escolhido.');
+      } catch (err) { toast(err.message, 'error'); }
+    } }, 'Salvar');
+    const reload = h('button', { class: 'btn ghost', type: 'button', onclick: () => loadTargets(currentChoice()) }, 'Atualizar lista');
+    targetsCard.replaceChildren(...[
+      h('h2', {}, 'Onde postar'),
+      h('p', { class: 'muted' }, 'Marque os canais (📢, só os que você é dono ou administrador) e grupos (👥) que recebem as ofertas. Canal que não aparecer: cole o link dele.'),
+      error ? h('div', { class: 'notice error' }, error) : null,
+      list,
+      h('div', { class: 'inline mt' }, link, add),
+      h('div', { class: 'actions' }, save, available ? reload : null)].filter(Boolean));
+  }
+
+  const currentChoice = () => [...targetsCard.querySelectorAll('.wa-targets input:checked')]
+    .map((input) => ({ id: input.value, name: input.dataset.name, type: input.dataset.type }));
+
+  async function loadTargets(saved) {
+    targetsCard.replaceChildren(h('h2', {}, 'Onde postar'), h('p', { class: 'muted' }, 'Carregando canais e grupos…'));
+    try { drawTargets(saved, (await post('available')).items); } catch (error) { drawTargets(saved, [], error.message); }
+  }
+
+  const refresh = async () => {
+    try {
+      const wa = await api('/api/whatsapp');
+      if (wa.state !== last || wa.qr) drawConnection(wa);
+    } catch { /* tenta de novo no próximo ciclo */ }
+  };
+  refresh();
+  refreshTimer = setInterval(refresh, 3000);
 }
 
 // ---------- ações e produtos ----------

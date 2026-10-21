@@ -135,3 +135,25 @@ test('token do Instagram é renovado a cada 7 dias e salvo na configuração', a
   assert.equal(process.env.INSTAGRAM_TOKEN, 'novo-token-0123456789');
   assert.equal(store.getSetting('cfg:INSTAGRAM_TOKEN'), 'novo-token-0123456789');
 });
+
+test('WhatsApp por QR code: lê link de canal, metadado do canal e só guarda canais e grupos válidos', async () => {
+  const { channelInviteCode, parseNewsletter, setTargets, getTargets, startWhatsappWeb } = await import('../publishers/whatsappWeb.js');
+  assert.equal(channelInviteCode('https://whatsapp.com/channel/0029VaABCdef123456789'), '0029VaABCdef123456789');
+  assert.equal(channelInviteCode('https://chat.whatsapp.com/abc'), null);
+  assert.deepEqual(parseNewsletter({ id: '1@newsletter', thread_metadata: { name: { text: 'Achadinhos' } }, viewer_metadata: { role: 'OWNER' } }),
+    { id: '1@newsletter', name: 'Achadinhos', type: 'canal', admin: true });
+  assert.equal(parseNewsletter({ id: '2@newsletter', thread_metadata: { name: { text: 'Outro' } }, viewer_metadata: { role: 'SUBSCRIBER' } }).admin, false);
+  assert.equal(parseNewsletter(null), null);
+
+  // Sem o modo QR ligado, startWhatsappWeb não conecta; só registra o store.
+  const store = newStore();
+  startWhatsappWeb({ store, logger: quiet });
+  const saved = setTargets([{ id: '1@newsletter', name: 'Achadinhos' }, { id: '123@g.us', name: 'Grupo', type: 'grupo' }, { id: '5511999@s.whatsapp.net', name: 'pessoa' }]);
+  assert.deepEqual(saved.map((target) => target.id), ['1@newsletter', '123@g.us']);
+  assert.deepEqual(getTargets(), saved);
+});
+
+test('modo QR desconectado: a oferta falha no WhatsApp com aviso claro, sem afetar os outros destinos', async () => {
+  const { sendWhatsappOffer } = await import('../publishers/whatsapp.js');
+  await assert.rejects(sendWhatsappOffer(offer, { env: { WHATSAPP_MODE: 'web' } }), /WhatsApp desconectado/);
+});

@@ -10,7 +10,7 @@ export const SECTIONS = [
   { id: 'mensagem', title: 'Mensagem', description: 'Como as ofertas aparecem no Discord e no Telegram.' },
   { id: 'discord', title: 'Discord', description: 'Bot do Discord Developer Portal. Mudar o token reconecta o bot.' },
   { id: 'telegram', title: 'Telegram', description: 'Bot do @BotFather, administrador do canal com permissão de publicar. Com o seu ID de dono, você cola links no privado do bot e recebe a prévia com ✅ Postar / 🗑 Descartar.' },
-  { id: 'whatsapp', title: 'WhatsApp', description: 'Canais do WhatsApp não têm API oficial para publicar, e as bibliotecas não oficiais arriscam banir o número. Por isso o bot manda cada oferta no seu privado do Telegram com a foto e o texto já formatado para o WhatsApp: toque no texto para copiar, salve a foto e poste no canal. Precisa do token do Telegram e do seu ID de dono.' },
+  { id: 'whatsapp', title: 'WhatsApp', description: 'Dois modos. "Kit no privado do Telegram" (sem risco): o bot manda a foto e o texto pronto no seu privado do Telegram e você cola no canal. "Conectar por QR code" (não oficial): o bot entra no seu WhatsApp como um aparelho conectado e posta sozinho nos canais e grupos que você escolher; o WhatsApp não autoriza bots assim e pode restringir ou banir o número, então prefira um número só para isso.' },
   { id: 'instagram', title: 'Instagram', description: 'API oficial do Instagram (login do Instagram) com conta Profissional. O bot publica a foto da oferta com "Comente QUERO" na legenda e, a cada 2 minutos, manda o link no direct de quem comentou a palavra-chave e responde o comentário. O token de 60 dias é renovado sozinho.' },
   { id: 'shopee', title: 'Shopee', description: 'Shopee Affiliate Open API. Entra na postagem automática e na manual.' },
   { id: 'aliexpress', title: 'AliExpress', description: 'AliExpress Affiliate Open Platform. Entra na postagem automática e na manual.' },
@@ -46,7 +46,9 @@ export const FIELDS = [
   { key: 'POST_DISCORD', section: 'mensagem', label: 'Publicar no Discord', type: 'bool', default: 'true' },
   { key: 'POST_TELEGRAM', section: 'mensagem', label: 'Publicar no Telegram', type: 'bool', default: 'true' },
 
-  { key: 'POST_WHATSAPP', section: 'whatsapp', label: 'Mandar cada oferta e cupom prontos para o Canal do WhatsApp no seu privado do Telegram', type: 'bool', default: 'false' },
+  { key: 'POST_WHATSAPP', section: 'whatsapp', label: 'Publicar ofertas e cupons no WhatsApp', type: 'bool', default: 'false' },
+  { key: 'WHATSAPP_MODE', section: 'whatsapp', label: 'Como publicar', type: 'select',
+    options: [['kit', 'Kit no privado do Telegram (você cola no canal; sem risco)'], ['web', 'Conectar por QR code e postar direto (não oficial; risco de banimento)']], default: 'kit' },
 
   { key: 'POST_INSTAGRAM', section: 'instagram', label: 'Publicar ofertas no Instagram', type: 'bool', default: 'false' },
   { key: 'INSTAGRAM_TOKEN', section: 'instagram', label: 'Token de acesso (longa duração, gerado no app da Meta)', type: 'secret', pattern: /^[\w.|-]{20,}$/, default: '' },

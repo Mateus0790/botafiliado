@@ -1,13 +1,15 @@
 import { callTelegram } from './telegram.js';
 import { buyLabel, couponButtonLabel, couponLines, originalPriceText } from '../utils/embed.js';
+import { sendWhatsappWeb, whatsappWebMode } from './whatsappWeb.js';
 
 /**
  * Canais do WhatsApp não têm API oficial para publicar. Em vez de usar bibliotecas não oficiais
- * (que arriscam banir o número), o bot manda no privado do dono no Telegram a foto e o texto já
- * formatado para o WhatsApp: é só tocar no texto para copiar e colar no canal.
+ * (que arriscam banir o número), o modo padrão manda no privado do dono no Telegram a foto e o texto
+ * já formatado para o WhatsApp: é só tocar no texto para copiar e colar no canal.
+ * No modo QR code (WHATSAPP_MODE=web, não oficial) o bot posta direto nos canais/grupos escolhidos.
  */
 export function whatsappConfigured(env = process.env) {
-  return Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_OWNER_ID);
+  return whatsappWebMode(env) || Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_OWNER_ID);
 }
 
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -46,5 +48,9 @@ async function sendKit(text, { image, env }) {
   }, env).catch((error) => { throw new Error(error.message.replace(/^Telegram:/, 'WhatsApp (privado do Telegram):')); });
 }
 
-export const sendWhatsappOffer = (product, { env = process.env } = {}) => sendKit(whatsappText(product), { image: product.image, env });
-export const sendWhatsappCoupon = (coupon, { env = process.env } = {}) => sendKit(whatsappCouponText(coupon), { env });
+export const sendWhatsappOffer = (product, { env = process.env } = {}) => (whatsappWebMode(env)
+  ? sendWhatsappWeb(whatsappText(product), { image: product.image })
+  : sendKit(whatsappText(product), { image: product.image, env }));
+export const sendWhatsappCoupon = (coupon, { env = process.env } = {}) => (whatsappWebMode(env)
+  ? sendWhatsappWeb(whatsappCouponText(coupon))
+  : sendKit(whatsappCouponText(coupon), { env }));
