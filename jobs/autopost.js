@@ -89,7 +89,7 @@ export async function runAutoPost({ client, store, now = new Date(), search, sou
   const active = sources ?? (search ? [{ id: 'shopee', search }] : config.stores.map((id) => ({ id, search: STORES[id].search })));
   if (!config.terms.length) return { posted: [], reason: 'Nenhuma palavra-chave ou nicho configurado.' };
   if (!active.length) return { posted: [], reason: 'Nenhuma loja ativa com credenciais para a postagem automática (Shopee ou AliExpress).' };
-  if (!destinations(config.channelId).length) return { posted: [], reason: 'Nenhum destino configurado (canal do Discord ou Telegram).' };
+  if (!destinations(config.channelId).length) return { posted: [], reason: 'Nenhum destino configurado (canal do Discord, Telegram, WhatsApp ou Instagram).' };
   if (!force && !withinHours(now, config)) return { posted: [], reason: `Fora do horário de postagem (${config.startHour}h–${config.endHour}h).` };
 
   const pairs = config.terms.length * active.length;
@@ -114,7 +114,7 @@ export async function runAutoPost({ client, store, now = new Date(), search, sou
   const errors = [];
   let sentTo = [];
   for (const product of picked) {
-    const result = await publish(product, { client, discordChannelId: config.channelId });
+    const result = await publish(product, { client, discordChannelId: config.channelId, store });
     store.markPosted(product, config.channelId || 'telegram');
     sentTo = result.sent;
     errors.push(...result.errors);

@@ -6,6 +6,8 @@ const PAGES = [
   { id: 'mensagem', title: 'Mensagem', icon: '💬', sections: ['mensagem'] },
   { id: 'discord', title: 'Discord', icon: '🎮', sections: ['discord'], actions: ['test-discord', 'register-commands'] },
   { id: 'telegram', title: 'Telegram', icon: '✈️', sections: ['telegram'], actions: ['test-telegram'] },
+  { id: 'whatsapp', title: 'WhatsApp', icon: '📲', sections: ['whatsapp'], actions: ['test-whatsapp'] },
+  { id: 'instagram', title: 'Instagram', icon: '📸', sections: ['instagram'], actions: ['test-instagram'] },
   { id: 'lojas', title: 'Lojas e APIs', icon: '🛍️', sections: ['shopee', 'aliexpress', 'mercadolivre'], description: 'Credenciais das plataformas de afiliados.' },
   { id: 'postar', title: 'Postar link', icon: '📣', group: 'Ferramentas', description: 'Pré-visualize ou publique um produto de qualquer loja.' },
   { id: 'cupons', title: 'Cupons', icon: '🎟️', description: 'Cadastre cupons com o link da página da loja: o bot gera o link de afiliado e publica no Discord e no Telegram.' },
@@ -16,7 +18,7 @@ const PAGES = [
 
 const ACTION_LABELS = {
   'run-now': 'Rodar agora', 'test-discord': 'Testar conexão', 'register-commands': 'Registrar comandos',
-  'test-telegram': 'Testar canal', 'test-shopee': 'Testar API', 'test-ml-session': 'Testar sessão meli.la',
+  'test-telegram': 'Testar canal', 'test-whatsapp': 'Mandar exemplo no meu privado', 'test-instagram': 'Testar conta', 'test-shopee': 'Testar API', 'test-ml-session': 'Testar sessão meli.la',
   'ml-login-start': 'Fazer login do Mercado Livre', 'ml-login-stop': 'Concluir login'
 };
 const SECTION_ACTIONS = { shopee: ['test-shopee'], mercadolivre: ['ml-login-start', 'ml-login-stop', 'test-ml-session'] };

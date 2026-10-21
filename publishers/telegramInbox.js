@@ -96,7 +96,7 @@ export function startTelegramInbox({ store, getClient, logger = console, telegra
     }
     try {
       const channelId = process.env.CANAL_POSTAGEM_ID;
-      const { sent, errors } = await publishOffer(entry.product, { client: getClient(), discordChannelId: channelId });
+      const { sent, errors } = await publishOffer(entry.product, { client: getClient(), discordChannelId: channelId, store });
       store.markPosted(entry.product, channelId || 'telegram');
       await keepBuy();
       await telegram('answerCallbackQuery', { callback_query_id: query.id, text: `✅ Postado em ${sent.join(' e ')}` });
