@@ -46,6 +46,20 @@ export function clearProfileLock() {
   for (const name of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) rmSync(join(profileDir(), name), { force: true });
 }
 
+/**
+ * Diferencia os dois motivos de recusa: a API do Linkbuilder responde JSON quando a sessão não
+ * vale (não logado ou expirada); o firewall responde uma página HTML de bloqueio.
+ */
+export function refusalMessage(result, { title = '' } = {}) {
+  const detail = result.body ? (result.body.message || result.body.error || '') : '';
+  if (result.body) {
+    return `O Mercado Livre recusou o pedido (HTTP ${result.status}${detail ? `: ${String(detail).slice(0, 120)}` : ''}). `
+      + 'A sessão do navegador do bot não está logada ou expirou: faça o login de novo (painel → Mercado Livre → Fazer login do Mercado Livre) e confira se o Gerador de links abre logado.';
+  }
+  return `O firewall do Mercado Livre bloqueou o navegador do bot (HTTP ${result.status}${title ? `, página "${title.slice(0, 60)}"` : ''}). `
+    + 'O login pode estar certo: o site recusou o navegador automatizado. Use o modo parâmetros (matt_word/matt_tool) ou tente mais tarde.';
+}
+
 // O perfil só pode ser aberto por um navegador por vez: as gerações de link e o login entram numa fila.
 let queue = Promise.resolve();
 let loginOpen = false;
@@ -80,7 +94,7 @@ export function createLinksInBrowser(urls, tag, { headless = process.env.ML_BROW
         try { return { status: response.status, body: JSON.parse(text) }; } catch { return { status: response.status, text: text.slice(0, 200) }; }
       }, { api: CREATE_LINK_URL, urls, tag });
       if (result.status === 401 || result.status === 403) {
-        throw Object.assign(new Error(`O Mercado Livre recusou o pedido do navegador do bot (HTTP ${result.status}).`), { session: true });
+        throw Object.assign(new Error(refusalMessage(result, { title: await page.title().catch(() => '') })), { session: true });
       }
       if (result.status !== 200 || !result.body) throw new Error(`Linkbuilder respondeu HTTP ${result.status}: ${result.text ?? ''}`);
       return (result.body.urls ?? []).map((item) => item?.short_url ?? '');
