@@ -41,7 +41,7 @@ x-casaos:
   tagline:
     en_us: Bot de ofertas com links de afiliado (Shopee, AliExpress, Mercado Livre)
   description:
-    en_us: Posta ofertas com links de afiliado no Discord e no Telegram. Configure tudo pelo painel.
+    en_us: Posta ofertas com links de afiliado no Discord, Telegram, Canal do WhatsApp e Instagram. Configure tudo pelo painel.
   scheme: http
   port_map: "3000"
   index: /
