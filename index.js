@@ -7,6 +7,7 @@ import { startAutoPost, autoConfig } from './jobs/autopost.js';
 import { startCouponScheduler } from './jobs/coupons.js';
 import { startTelegramInbox } from './publishers/telegramInbox.js';
 import { startInstagramWatcher } from './jobs/instagramComments.js';
+import { startWhatsappWeb } from './publishers/whatsappWeb.js';
 import { createPanel } from './web/server.js';
 
 captureConsole();
@@ -20,6 +21,7 @@ const inbox = startTelegramInbox({ store: cache, getClient: bot.getClient });
 autopost = startAutoPost({ getClient: bot.getClient, store: cache, notify: inbox.notify });
 const coupons = startCouponScheduler({ getClient: bot.getClient, store: cache, notify: inbox.notify });
 const instagram = startInstagramWatcher({ store: cache, notify: inbox.notify });
+const whatsapp = startWhatsappWeb({ store: cache });
 const panel = createPanel({ store: cache, bot, autopost });
 
 const port = Number(process.env.PAINEL_PORTA || 3000);
@@ -37,6 +39,7 @@ async function shutdown() {
   autopost.stop();
   coupons.stop();
   instagram.stop();
+  await whatsapp.stop();
   inbox.stop();
   await panel.close();
   await bot.stop();

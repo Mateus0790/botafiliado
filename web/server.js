@@ -7,7 +7,8 @@ import { recentLogs } from '../utils/logs.js';
 import { resolveProduct } from '../services/index.js';
 import { searchShopeeOffers } from '../services/shopee.js';
 import { checkTelegram, telegramConfigured } from '../publishers/telegram.js';
-import { sendWhatsappOffer, whatsappConfigured } from '../publishers/whatsapp.js';
+import { sendWhatsappOffer, whatsappConfigured, whatsappText } from '../publishers/whatsapp.js';
+import { connectWhatsapp, disconnectWhatsapp, findChannelByLink, listWhatsappTargets, sendWhatsappWebToSelf, setTargets, whatsappWebMode, whatsappWebStatus } from '../publishers/whatsappWeb.js';
 import { checkInstagram, instagramConfigured } from '../publishers/instagram.js';
 import { destinations, publishOffer } from '../publishers/index.js';
 import { registerCommands } from '../commands/index.js';
@@ -114,9 +115,14 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       return { message: `${result.bot} pode postar em "${result.chat}".` };
     },
     async 'test-whatsapp'() {
+      const sample = { platform: 'shopee', platformLabel: 'Shopee', id: 'exemplo', title: 'Produto de exemplo (teste do painel)', price: 'R$ 49,90',
+        priceValue: 49.9, discount: 30, rating: 4.8, sales: 1200, affiliateUrl: 'https://s.shopee.com.br/exemplo' };
+      if (whatsappWebMode()) {
+        await sendWhatsappWebToSelf(whatsappText(sample));
+        return { message: 'Mandei um exemplo para a sua própria conversa no WhatsApp ("Você"). Nada foi postado nos canais.' };
+      }
       if (!whatsappConfigured()) throw new Error('Preencha o token do Telegram e o seu ID de dono na página Telegram.');
-      await sendWhatsappOffer({ platform: 'shopee', platformLabel: 'Shopee', id: 'exemplo', title: 'Produto de exemplo (teste do painel)', price: 'R$ 49,90',
-        priceValue: 49.9, discount: 30, rating: 4.8, sales: 1200, affiliateUrl: 'https://s.shopee.com.br/exemplo' });
+      await sendWhatsappOffer(sample);
       return { message: 'Mandei um exemplo no seu privado do Telegram. Toque no texto para copiar e cole no Canal do WhatsApp.' };
     },
     async 'test-instagram'() {
@@ -195,8 +201,30 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       if (changed.includes('AUTO_KEYWORDS')) store.setSetting('auto_keyword_index', '0');
       if (changed.some((key) => SCHEDULE_KEYS.includes(key))) autopost.reschedule();
       if (changed.some((key) => DISCORD_KEYS.includes(key))) bot.restart().catch((error) => logger.error(`Discord: ${error.message}`));
+      if (changed.includes('WHATSAPP_MODE') && !whatsappWebMode()) disconnectWhatsapp().catch(() => {});
       if (changed.length) logger.log(`[painel] configurações alteradas: ${changed.join(', ')}`);
       return json(res, 200, { changed, state: state() });
+    }
+    if (path === '/api/whatsapp' && req.method === 'GET') return json(res, 200, whatsappWebStatus());
+    if (path.startsWith('/api/whatsapp/') && req.method === 'POST') {
+      const body = await readJson(req);
+      const action = path.slice('/api/whatsapp/'.length);
+      try {
+        if (action === 'connect') {
+          if (!whatsappWebMode()) throw new Error('Escolha "Conectar por QR code" em "Como publicar" e salve antes de conectar.');
+          await connectWhatsapp({ store, logger });
+          return json(res, 200, { ok: true, ...whatsappWebStatus() });
+        }
+        if (action === 'disconnect') {
+          await disconnectWhatsapp({ logout: body.logout === true });
+          logger.log(`[whatsapp] ${body.logout ? 'sessão apagada' : 'desconectado'} pelo painel`);
+          return json(res, 200, { ok: true, ...whatsappWebStatus() });
+        }
+        if (action === 'available') return json(res, 200, { ok: true, items: await listWhatsappTargets() });
+        if (action === 'find-channel') return json(res, 200, { ok: true, item: await findChannelByLink(body.link) });
+        if (action === 'targets') return json(res, 200, { ok: true, targets: setTargets(body.targets) });
+      } catch (error) { return json(res, 200, { ok: false, message: error.message }); }
+      throw new HttpError(404, 'Rota não encontrada.');
     }
     if (path === '/api/history' && req.method === 'GET') return json(res, 200, { total: store.countPosts(), items: store.recentPosts(100) });
     if (path === '/api/history/delete' && req.method === 'POST') {
