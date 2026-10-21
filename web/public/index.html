@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel do Bot Afiliado</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Login / primeiro acesso -->
+  <main id="auth" class="auth" hidden>
+    <form id="auth-form" class="auth-card">
+      <div class="brand"><span class="brand-mark">🛒</span> Bot Afiliado</div>
+      <h1 id="auth-title">Entrar no painel</h1>
+      <p id="auth-help" class="muted"></p>
+      <label id="code-field" hidden>Código de primeiro acesso
+        <input name="code" autocomplete="off" placeholder="Aparece no log do bot">
+      </label>
+      <label>Senha
+        <input name="password" type="password" autocomplete="current-password" required minlength="1">
+      </label>
+      <label id="confirm-field" hidden>Repita a senha
+        <input name="confirm" type="password" autocomplete="new-password">
+      </label>
+      <button class="btn primary" type="submit" id="auth-submit">Entrar</button>
+      <p id="auth-error" class="error" role="alert"></p>
+    </form>
+  </main>
+
+  <!-- Painel -->
+  <div id="app" class="app" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">🛒</span> Bot Afiliado</div>
+      <nav id="nav"></nav>
+      <button class="btn ghost logout" id="logout">Sair</button>
+    </aside>
+    <main class="content">
+      <header class="page-header">
+        <div>
+          <h1 id="page-title"></h1>
+          <p id="page-description" class="muted"></p>
+        </div>
+      </header>
+      <div id="page"></div>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

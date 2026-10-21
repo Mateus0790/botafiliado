@@ -1,9 +1,50 @@
+name: botafiliado
 services:
   botafiliado:
-    build: .
+    # Imagem pronta publicada pelo GitHub (amd64 e arm64). Para montar a partir do código, use
+    # "docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build".
+    image: ghcr.io/mateus0790/botafiliado:latest
+    container_name: botafiliado
+    # Nome fixo: o Chromium associa o perfil logado do Mercado Livre ao nome da máquina.
+    hostname: botafiliado
     restart: unless-stopped
-    env_file: .env
+    ports:
+      # Painel em http://IP-DO-SERVIDOR:3000
+      - "3000:3000"
+      # Tela do navegador durante o login do Mercado Livre (modo meli.la); só fica ativa enquanto o login
+      # estiver aberto pelo painel, com senha. Remova esta linha se usar o modo parâmetros.
+      - "6080:6080"
+    # Opcional: tudo pode ser configurado pelo painel. O .env, se existir, serve de valor inicial
+    # (use o config-exportada.env gerado por "node exportar-config.js" no PC, renomeado para .env).
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DATABASE_PATH: /app/data/botafiliado.sqlite
+      TZ: America/Sao_Paulo
+      # Descomente para fixar a senha do painel (senão ela é criada no primeiro acesso):
+      # PAINEL_SENHA: troque-esta-senha
+    # O Chromium do modo meli.la precisa de mais memória compartilhada que o padrão do Docker.
+    shm_size: "512mb"
     volumes:
-      - ./data:/app/data
+      # Banco com configurações, senha do painel, histórico e o perfil logado do Mercado Livre.
+      - botafiliado-data:/app/data
+
+volumes:
+  botafiliado-data:
+
+# Informações para o ZimaOS/CasaOS mostrarem o app no painel (ignoradas pelo Docker).
+x-casaos:
+  main: botafiliado
+  architectures: [amd64, arm64]
+  category: Utilities
+  author: Mateus0790
+  developer: Mateus0790
+  title:
+    en_us: BotAfiliado
+  tagline:
+    en_us: Bot de ofertas com links de afiliado (Shopee, AliExpress, Mercado Livre)
+  description:
+    en_us: Posta ofertas com links de afiliado no Discord e no Telegram. Configure tudo pelo painel.
+  scheme: http
+  port_map: "3000"
+  index: /

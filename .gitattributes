@@ -1,0 +1,2 @@
+# Scripts do container precisam de fim de linha LF, mesmo editados no Windows.
+*.sh text eol=lf

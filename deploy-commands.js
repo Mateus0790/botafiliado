@@ -1,11 +1,10 @@
 import 'dotenv/config';
-import { REST, Routes } from 'discord.js';
-import * as afiliado from './commands/afiliado.js';
-import * as postar from './commands/postar.js';
-import * as definirMl from './commands/definir-afiliado-ml.js';
-const { DISCORD_TOKEN: token, DISCORD_CLIENT_ID: clientId, DISCORD_GUILD_ID: guildId } = process.env;
-if (!token || !clientId) throw new Error('DISCORD_TOKEN e DISCORD_CLIENT_ID são obrigatórios para registrar comandos.');
-const body = [afiliado, postar, definirMl].map((command) => command.data.toJSON());
-const route = guildId ? Routes.applicationGuildCommands(clientId, guildId) : Routes.applicationCommands(clientId);
-await new REST({ version: '10' }).setToken(token).put(route, { body });
-console.log(`Comandos ${guildId ? 'do servidor' : 'globais'} registrados com sucesso.`);
+import { createCache } from './utils/cache.js';
+import { applyStoredConfig } from './utils/config.js';
+import { registerCommands } from './commands/index.js';
+
+// Usa também o que foi salvo pelo painel.
+const cache = createCache();
+applyStoredConfig(cache);
+cache.close();
+console.log(`Comandos registrados ${await registerCommands()}.`);

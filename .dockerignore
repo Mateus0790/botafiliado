@@ -1,0 +1,14 @@
+node_modules
+data
+.env
+.env.*
+*.env
+ml_profile
+.github
+*.sqlite*
+npm-debug.log*
+.git
+tests
+Dockerfile
+docker-compose.yml
+config-exportada.env

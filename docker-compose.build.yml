@@ -1,0 +1,6 @@
+# Monta a imagem a partir do código desta pasta em vez de baixar a pronta:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  botafiliado:
+    build: .
+    image: botafiliado:local
