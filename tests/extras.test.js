@@ -145,3 +145,17 @@ test('avisos para o dono não se repetem dentro de 1 hora', async () => {
   await inbox.notify('⚠️ desligado');
   assert.equal(calls.length, 2);
 });
+
+test('link de afiliado acima de 512 caracteres vai no texto do embed, sem botão (limite do Discord)', async () => {
+  const { productMessage, couponMessage } = await import('../utils/embed.js');
+  const long = `https://www.mercadolivre.com.br/p/MLB1?${'x'.repeat(600)}`;
+  const base = { platform: 'mercadolivre', platformLabel: 'Mercado Livre', id: '1', title: 'Produto', price: 'R$ 10,00', priceValue: 10 };
+  const message = productMessage({ ...base, affiliateUrl: long });
+  assert.deepEqual(message.components, []);
+  assert.ok(message.embeds[0].data.description.endsWith(`🛒 [Comprar no Mercado Livre](${long})`));
+  assert.equal(message.embeds[0].data.url, long);
+  assert.equal(productMessage({ ...base, affiliateUrl: 'https://meli.la/abc' }).components.length, 1, 'link curto continua com botão');
+  const coupon = couponMessage({ platform: 'aliexpress', title: 'Cupom', code: 'A1', affiliateUrl: long });
+  assert.deepEqual(coupon.components, []);
+  assert.match(coupon.embeds[0].data.description, /🎟️ \[Pegar cupom no AliExpress\]/);
+});
