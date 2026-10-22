@@ -97,6 +97,38 @@ export async function searchAliExpressOffers(keyword, { sort = 'mais-vendidos', 
   };
 }
 
+/**
+ * As datas do promo_code_info vêm sem fuso. Lemos no fuso da China (UTC+8), o mais adiantado
+ * entre os usados pela plataforma: na dúvida o cupom "vence" antes, nunca depois.
+ */
+const aliexpressTime = (text) => {
+  const date = new Date(`${String(text ?? '').trim().replace(' ', 'T')}+08:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+/**
+ * Códigos de cupom reais que o AliExpress devolve junto de alguns produtos da busca (promo_code_info).
+ * O link é o de afiliado do produto, onde o cupom vale.
+ */
+export async function searchAliExpressPromoCodes(keyword, { page = 1 } = {}) {
+  const { trackingId } = credentials();
+  const result = await call('aliexpress.affiliate.product.query', {
+    keywords: keyword, page_no: String(page), page_size: '50', tracking_id: trackingId,
+    ship_to_country: process.env.ALIEXPRESS_COUNTRY || 'BR', ...regional()
+  }, { allowEmpty: true });
+  return (result?.products?.product ?? []).filter((item) => item.promo_code_info?.promo_code && item.promotion_link).map((item) => {
+    const info = item.promo_code_info;
+    const value = String(info.code_value ?? '').trim();
+    const details = [info.code_mini_spend && `Compra mínima: ${info.code_mini_spend}.`, `Vale em: ${item.product_title}`].filter(Boolean).join(' ');
+    return {
+      platform: 'aliexpress', key: `aliexpress:${info.promo_code}`, title: (value ? `Cupom de ${value} no AliExpress` : 'Cupom no AliExpress').slice(0, 80),
+      code: String(info.promo_code), description: details.length > 300 ? `${details.slice(0, 299)}…` : details,
+      url: info.code_promotionurl || `https://www.aliexpress.com/item/${item.product_id}.html`, affiliateUrl: item.promotion_link,
+      startsAt: aliexpressTime(info.code_availabletime_start), expiresAt: aliexpressTime(info.code_availabletime_end)
+    };
+  });
+}
+
 /** Converte qualquer link do AliExpress (produto, cupom, campanha, loja) em link de afiliado. */
 export async function generateAliExpressLink(url) {
   const { trackingId } = credentials();
