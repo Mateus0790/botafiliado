@@ -436,10 +436,10 @@ function productCard(product) {
 async function runAction(action, body, button, target) {
   try {
     const data = await withBusy(button, () => api(`/api/actions/${action}`, body));
-    target.replaceChildren(h('div', { class: `notice ${data.ok ? 'ok' : 'error'}` }, data.message),
+    target.replaceChildren(...[h('div', { class: `notice ${data.ok ? 'ok' : 'error'}` }, data.message),
       data.link ? h('a', { class: 'btn primary', href: data.link, target: '_blank', rel: 'noopener noreferrer' }, 'Abrir tela do navegador') : null,
       ...(data.errors ?? []).map((error) => h('div', { class: 'notice error' }, error)),
-      ...(data.posted ?? []).map(productCard));
+      ...(data.posted ?? []).map(productCard)].filter(Boolean));
     if (data.ok && action === 'run-now') loadState().catch(() => {});
     return data;
   } catch (error) {

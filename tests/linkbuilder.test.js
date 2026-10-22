@@ -98,3 +98,9 @@ test('modo parâmetros continua igual e não abre navegador', async () => {
   assert.equal(product.affiliateUrl, 'https://www.mercadolivre.com.br/p/MLB55?matt_word=bot&matt_tool=1');
   assert.equal(product.needsMeliLink, undefined);
 });
+
+test('recusa do Linkbuilder explica se foi a sessão (JSON) ou o firewall (HTML)', async () => {
+  const { refusalMessage } = await import('../services/mlBrowser.js');
+  assert.match(refusalMessage({ status: 403, body: { message: 'forbidden' } }), /sessão do navegador do bot não está logada[\s\S]*Fazer login/);
+  assert.match(refusalMessage({ status: 403, text: '<html>Access denied' }, { title: 'Access Denied' }), /firewall[\s\S]*"Access Denied"/);
+});
