@@ -39,6 +39,9 @@ export const FIELDS = [
   { key: 'AUTO_MAX_PRICE', section: 'auto', label: 'Preço máximo (R$, vazio = sem limite)', type: 'number', min: 0, step: 0.01, default: '' },
   { key: 'AUTO_BLOCKED_WORDS', section: 'auto', label: 'Palavras bloqueadas no título (uma por linha, ex.: capinha)', type: 'list', default: '' },
   { key: 'AUTO_REPEAT_DAYS', section: 'auto', label: 'Repostar o mesmo produto depois de (dias, 0 = nunca)', type: 'number', min: 0, max: 365, default: '0' },
+  { key: 'AUTO_COUPONS_ENABLED', section: 'auto', label: 'Cupons automáticos: buscar e postar cupons e promoções reais da Shopee e do AliExpress', type: 'bool', default: 'false' },
+  { key: 'AUTO_COUPONS_INTERVAL_H', section: 'auto', label: 'Cupons automáticos: buscar a cada (horas)', type: 'number', min: 1, max: 48, default: '6' },
+  { key: 'AUTO_COUPONS_PER_RUN', section: 'auto', label: 'Cupons automáticos: quantos postar por busca', type: 'number', min: 1, max: 5, default: '1' },
   { key: 'AUTO_CANAL_ID', section: 'auto', label: 'Canal do Discord só para as automáticas (vazio = canal padrão)', type: 'text', pattern: /^\d{15,25}$/, default: '' },
 
   { key: 'POST_HEADER', section: 'mensagem', label: 'Texto acima da oferta', type: 'text', maxLength: 120, default: '🚨 PROMOÇÃO ENCONTRADA!' },

@@ -88,3 +88,17 @@ export async function searchShopeeOffers(keyword, { sortType = SHOPEE_SORT['mais
     hasNextPage: Boolean(data?.productOfferV2?.pageInfo?.hasNextPage)
   };
 }
+
+/**
+ * Campanhas ativas da Shopee (cupons, frete grátis, datas especiais) pelo shopeeOfferV2, já com o
+ * link de afiliado (offerLink). A Shopee não informa códigos: o cupom é pego na página da campanha.
+ */
+export async function searchShopeePromotions({ keyword = '', page = 1, limit = 30 } = {}) {
+  const args = [`sortType: 1`, `page: ${Number(page)}`, `limit: ${Number(limit)}`, keyword && `keyword: ${JSON.stringify(keyword)}`].filter(Boolean).join(', ');
+  const data = await graphql(`{ shopeeOfferV2(${args}) { nodes { offerName offerLink originalLink imageUrl periodStartTime periodEndTime } } }`);
+  const time = (seconds) => (Number(seconds) > 0 ? new Date(Number(seconds) * 1000).toISOString() : null);
+  return (data?.shopeeOfferV2?.nodes ?? []).filter((node) => node.offerName && node.offerLink).map((node) => ({
+    platform: 'shopee', key: `shopee:${node.originalLink || node.offerLink}`, title: node.offerName, code: '', description: '',
+    url: node.originalLink || node.offerLink, affiliateUrl: node.offerLink, startsAt: time(node.periodStartTime), expiresAt: time(node.periodEndTime)
+  }));
+}

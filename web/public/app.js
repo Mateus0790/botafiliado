@@ -2,7 +2,7 @@
 
 const PAGES = [
   { id: 'inicio', title: 'Início', icon: '🏠', description: 'Visão geral do bot.' },
-  { id: 'auto', title: 'Postagem automática', icon: '⏱️', group: 'Configuração', sections: ['auto'], actions: ['run-now'] },
+  { id: 'auto', title: 'Postagem automática', icon: '⏱️', group: 'Configuração', sections: ['auto'], actions: ['run-now', 'coupons-now'] },
   { id: 'mensagem', title: 'Mensagem', icon: '💬', sections: ['mensagem'] },
   { id: 'discord', title: 'Discord', icon: '🎮', sections: ['discord'], actions: ['test-discord', 'register-commands'] },
   { id: 'telegram', title: 'Telegram', icon: '✈️', sections: ['telegram'], actions: ['test-telegram'] },
@@ -17,7 +17,7 @@ const PAGES = [
 ];
 
 const ACTION_LABELS = {
-  'run-now': 'Rodar agora', 'test-discord': 'Testar conexão', 'register-commands': 'Registrar comandos',
+  'run-now': 'Rodar agora', 'coupons-now': 'Buscar cupons agora', 'test-discord': 'Testar conexão', 'register-commands': 'Registrar comandos',
   'test-telegram': 'Testar canal', 'test-whatsapp': 'Mandar exemplo no meu privado', 'test-instagram': 'Testar conta', 'test-shopee': 'Testar API', 'test-ml-session': 'Testar sessão meli.la',
   'ml-login-start': 'Fazer login do Mercado Livre', 'ml-login-stop': 'Concluir login'
 };

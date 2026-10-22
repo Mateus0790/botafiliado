@@ -76,6 +76,16 @@ Nenhuma das APIs de afiliados entrega códigos de cupom, então eles são cadast
 
 A mensagem mostra o código copiável (no Telegram, toque para copiar), a validade e o botão **Pegar cupom**. Com "Repetir a postagem", o bot reposta no intervalo escolhido, só dentro do horário de postagem, e para quando o cupom vence. O texto acima dos cupons é configurável em **Mensagem**.
 
+### Cupons automáticos
+
+Em **Postagem automática**, ligue **Cupons automáticos** para o bot buscar sozinho, a cada N horas (padrão 6) e dentro do horário de postagem, cupons e promoções **reais** que as APIs de afiliados informam:
+
+- **Shopee:** campanhas ativas (`shopeeOfferV2`: cupons, frete grátis, datas especiais) com o link de afiliado e a validade. A Shopee não informa o código; o seguidor pega o cupom na página da campanha.
+- **AliExpress:** códigos de cupom que a busca de produtos devolve (`promo_code_info`), com valor, compra mínima e validade, usando as palavras-chave da postagem automática. O link é o de afiliado do produto onde o cupom vale.
+- **Mercado Livre:** a API não oferece cupons.
+
+Cada cupom achado é salvo na página **Cupons** (dá para pausar ou apagar) e postado uma vez; o bot não repete cupom já divulgado, vencido ou cadastrado à mão. O bot nunca inventa códigos. **Buscar cupons agora** testa na hora.
+
 ## Telegram
 
 Com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` preenchidos, toda oferta do `/postar` e da postagem automática também vai para o Telegram: foto do produto, legenda com preço/desconto/avaliação e botão **🛒 Comprar na Shopee**. Uma falha num destino não impede o outro.

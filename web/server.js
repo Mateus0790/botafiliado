@@ -68,7 +68,7 @@ function preview(product) {
   return { platform, platformLabel, id, title, price, image, affiliateUrl, discount, rating, sales, commissionRate, freeShipping, originalPrice };
 }
 
-export function createPanel({ store, bot, autopost, logger = console, publicDir = new URL('./public/', import.meta.url) }) {
+export function createPanel({ store, bot, autopost, autoCoupons, logger = console, publicDir = new URL('./public/', import.meta.url) }) {
   const auth = createAuth(store);
   // Sem senha definida, o primeiro acesso exige este código, que só aparece no log do container.
   let setupCode = auth.hasPassword() ? null : crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -97,6 +97,13 @@ export function createPanel({ store, bot, autopost, logger = console, publicDir 
       const result = await autopost.runNow();
       return { message: result.posted.length ? `Postei ${result.posted.length} oferta(s) de "${result.keyword}" (${result.store}) em ${result.sentTo.join(' e ')}.` : result.reason,
         posted: result.posted.map(preview), errors: result.errors ?? [] };
+    },
+    async 'coupons-now'() {
+      if (!autoCoupons) throw new Error('Cupons automáticos indisponíveis.');
+      const result = await autoCoupons.runNow();
+      if (!result) throw new Error('Já existe uma busca de cupons em andamento.');
+      return { message: result.posted.length ? `Postei ${result.posted.map((coupon) => `"${coupon.title}"`).join(', ')} em ${result.sentTo.join(' e ')}. Eles também aparecem na página Cupons.` : result.reason,
+        errors: result.errors ?? [] };
     },
     async 'test-discord'() {
       const status = bot.status();
