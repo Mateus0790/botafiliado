@@ -62,6 +62,10 @@ Mande `/id` para o bot no privado: ele mostra o seu ID de usuário. Coloque-o em
 
 O bot lê o privado por long polling da Bot API (`getUpdates`); se outra cópia do bot estiver rodando com o mesmo token (ex.: Docker e PC ao mesmo tempo), o Telegram só entrega as mensagens para uma delas e o log avisa.
 
+## Ofertas urgentes (desconto absurdo)
+
+Em **Postagem automática**, ligue **Ofertas urgentes**. A cada 15 minutos (configurável), dentro do horário de postagem, o bot pega a próxima palavra-chave do rodízio, busca em todas as lojas ativas e, se achar produto com desconto igual ou acima do mínimo (padrão **70%**), posta **na hora** com o título "🔥 URGENTE: DESCONTO ABSURDO!" (editável). Usa os mesmos filtros de nota, vendas, preço e palavras bloqueadas, não repete produto já postado e tem limite por dia (padrão 5). O desconto é o que a loja informa. **Procurar oferta urgente agora** testa na hora.
+
 ## Filtros, nichos e repetição
 
 - **Nichos prontos** (Tecnologia, Casa, Pet…): somam palavras-chave para Shopee/AliExpress e, no Mercado Livre, usam direto a categoria certa (`services/nichos.js`).
@@ -73,6 +77,8 @@ O bot lê o privado por long polling da Bot API (`getUpdates`); se outra cópia 
 ## Cupons
 
 Nenhuma das APIs de afiliados entrega códigos de cupom, então eles são cadastrados no painel (página **Cupons**) com o link da página do cupom, campanha ou loja. Ao salvar, o link vira link de afiliado pela via oficial de cada loja: `generateShortLink` (Shopee), `aliexpress.affiliate.link.generate` (AliExpress) ou `matt_word`/`matt_tool` (Mercado Livre); um `meli.la` colado é mantido como está. Parâmetros de rastreio de terceiros (`utm_*`, `aff_*`, `matt_*`…) são removidos antes da conversão.
+
+Um cupom pode ter **vários códigos**, um por linha no formato `condição: CÓDIGO` (ex.: `R$ 100 OFF em R$ 399: MOVEIS100`), **passo a passo** na descrição (até 1000 caracteres), **imagem/banner** (link de uma imagem; no Telegram vai como foto), um **link extra** como "Link do carrinho" (também vira link de afiliado e ganha um segundo botão) e **Postar a partir de**: o cupom fica "agendado" e sai sozinho na hora marcada (ex.: cupons liberados à meia-noite), mesmo fora do horário de postagem.
 
 A mensagem mostra o código copiável (no Telegram, toque para copiar), a validade e o botão **Pegar cupom**. Com "Repetir a postagem", o bot reposta no intervalo escolhido, só dentro do horário de postagem, e para quando o cupom vence. O texto acima dos cupons é configurável em **Mensagem**.
 
@@ -167,9 +173,26 @@ A assinatura MD5 concatena `App Secret + parâmetros ordenados (chave+valor) + A
 - **Parâmetros** (padrão, oficial): anexa `matt_word`/`matt_tool`. Em teste real (10/2026) o clique não apareceu no relatório do portal.
 - **meli.la pelo Linkbuilder** (não oficial, só fora do Docker): o firewall do Mercado Livre recusa requisições que não venham de um navegador, então o bot abre o Chrome/Edge deste PC com um perfil próprio (`data/ml_profile`) e chama o `createLink` de dentro da página do Linkbuilder, com a sua etiqueta. Faça o login uma vez com `node ml-login.js` (abre o navegador comum, sem automação). A automação não é escondida; em teste (10/2026) o modo sem janela foi recusado (HTTP 403) e com janela visível funcionou, então o padrão é "Navegador sem janela" desligado: uma janela abre por alguns segundos a cada link. É uma API interna, sujeita aos termos do programa e a mudanças sem aviso. Na automática o link só é gerado para a oferta que vai ser postada. Se a sessão expirar, o bot não posta Mercado Livre (para não publicar link sem comissão) e avisa no privado do Telegram. Botão **Testar sessão meli.la** no painel.
 
+Se o Linkbuilder recusar (sessão expirada ou firewall), a rodada automática segue com a próxima loja e o Mercado Livre fica **6 h fora do rodízio** (o cartão Lojas mostra até quando); mudar qualquer configuração do Mercado Livre libera na hora. Se o firewall bloquear o navegador do bot (mensagem "O firewall do Mercado Livre bloqueou…"), dá para ligar **Abrir o navegador como um navegador comum**: o Chromium abre como no login, sem as flags de automação, e o bot só se conecta a ele pela porta de depuração (apenas em 127.0.0.1). Não é autorizado pelo Mercado Livre e pode ser bloqueado do mesmo jeito.
+
 Links curtos (`s.shopee.com.br`, `s.click.aliexpress.com`, `mercadolivre.com/sec/...`) são expandidos antes da consulta.
 
 O Mercado Livre não possui endpoint público para criar link de afiliado. Portanto, o bot preserva o permalink oficial do item e anexa **somente** os parâmetros fornecidos por você; ele não inventa códigos de rastreamento.
+
+### Amazon
+
+1. Cadastre-se no **Amazon Associados** (associados.amazon.com.br). Sua **tag** (ID de rastreamento) termina em `-20`, ex.: `meusite-20`.
+2. Painel → Lojas e APIs → **Amazon** → cole a tag e salve.
+
+Com a tag, links da Amazon (`amazon.com.br`, `amzn.to`, `a.co`) viram links de afiliado em **Postar link**, no privado do Telegram e nos **Cupons**: produto vira `amazon.com.br/dp/ASIN?tag=sua-tag` e a tag de outro afiliado é trocada pela sua. A API de produtos da Amazon só é liberada depois de **3 vendas em 180 dias**; até lá não há busca automática nem preço/foto automáticos (o bot não raspa o site). No privado do Telegram, escreva o título e o preço nas linhas abaixo do link:
+
+```
+https://amzn.to/xxxx
+Fone JBL Tune 520BT
+R$ 199,90
+```
+
+Sem preço, o post diz "Confira o preço na Amazon" (a Amazon exige que preço mostrado esteja certo).
 
 ## Rodar sem Docker (Node 22.13+)
 

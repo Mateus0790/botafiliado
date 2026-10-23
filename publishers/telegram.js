@@ -10,7 +10,7 @@ export function telegramConfigured(env = process.env) {
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Legenda em HTML no mesmo estilo do embed do Discord. */
-export function telegramCaption(product, { header = `<b>${escapeHtml(process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!')}</b>` } = {}) {
+export function telegramCaption(product, { header = `<b>${escapeHtml(product.header ?? (process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!'))}</b>` } = {}) {
   const original = originalPriceText(product);
   const highlights = [`${original ? `<s>${escapeHtml(original)}</s> → ` : ''}💰 <b>${escapeHtml(product.price)}</b>`];
   if (product.discount) highlights.push(`🏷️ <b>${product.discount}% OFF</b>`);
@@ -62,10 +62,19 @@ export function telegramCouponText(coupon, { header = process.env.COUPON_HEADER?
 }
 
 export async function sendTelegramCoupon(coupon, { env = process.env } = {}) {
-  return callTelegram('sendMessage', {
-    chat_id: env.TELEGRAM_CHAT_ID, parse_mode: 'HTML', text: telegramCouponText(coupon), link_preview_options: { is_disabled: true },
-    reply_markup: { inline_keyboard: [[{ text: `🎟️ ${couponButtonLabel(coupon)}`, url: coupon.affiliateUrl }]] }
-  }, env);
+  const buttons = [[{ text: `🎟️ ${couponButtonLabel(coupon)}`, url: coupon.affiliateUrl }],
+    ...(coupon.extraAffiliateUrl ? [[{ text: `🛒 ${coupon.extraLabel || 'Link do carrinho'}`, url: coupon.extraAffiliateUrl }]] : [])];
+  const base = { chat_id: env.TELEGRAM_CHAT_ID, parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } };
+  const text = telegramCouponText(coupon);
+  // Com imagem (banner), vai como foto quando o texto cabe na legenda; senão, só o texto.
+  if (coupon.image && text.length <= CAPTION_LIMIT) {
+    try {
+      return await callTelegram('sendPhoto', { ...base, photo: coupon.image, caption: text }, env);
+    } catch (error) {
+      if (!/photo|image|file|wrong type|url/i.test(error.message)) throw error;
+    }
+  }
+  return callTelegram('sendMessage', { ...base, text, link_preview_options: { is_disabled: true } }, env);
 }
 
 /** Confere token e acesso ao canal sem postar nada. */

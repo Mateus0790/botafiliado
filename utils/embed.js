@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { formatPrice } from '../services/price.js';
 
-const PLATFORM_COLORS = { shopee: 0xEE4D2D, aliexpress: 0xE62E04, mercadolivre: 0xFFE600 };
+const PLATFORM_COLORS = { shopee: 0xEE4D2D, aliexpress: 0xE62E04, mercadolivre: 0xFFE600, amazon: 0xFF9900 };
 // "na Shopee", mas "no AliExpress" e "no Mercado Livre".
-const PREPOSITION = { shopee: 'na', aliexpress: 'no', mercadolivre: 'no' };
+const PREPOSITION = { shopee: 'na', aliexpress: 'no', mercadolivre: 'no', amazon: 'na' };
 
 export const buyLabel = (product) => `Comprar ${PREPOSITION[product.platform] ?? 'na'} ${product.platformLabel}`;
 
@@ -16,7 +16,7 @@ const linkButton = (url, label, emoji) => (url.length <= BUTTON_URL_MAX
   : []);
 const linkLine = (url, label, emoji) => (url.length > BUTTON_URL_MAX ? `\n\n${emoji} [${label}](${url})` : '');
 
-export const STORE_LABELS = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre' };
+export const STORE_LABELS = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre', amazon: 'Amazon' };
 export const couponButtonLabel = (coupon) =>
   `${coupon.code ? 'Pegar cupom' : 'Ver promoção'} ${PREPOSITION[coupon.platform] ?? 'na'} ${STORE_LABELS[coupon.platform] ?? coupon.platform}`;
 
@@ -27,11 +27,17 @@ export function formatDeadline(iso) {
   return `${parts.day}/${parts.month} às ${parts.hour}:${parts.minute}`;
 }
 
-/** Linhas do cupom (descrição, código e validade), em Markdown ou HTML conforme o destino. */
+/** Códigos do cupom; cupons antigos só têm `code`. */
+export const couponCodes = (coupon) => (coupon.codes?.length ? coupon.codes : coupon.code ? [{ label: '', code: coupon.code }] : []);
+
+/** Linhas do cupom (descrição, códigos e validade), em Markdown ou HTML conforme o destino. */
 export function couponLines(coupon, { code = (text) => `\`${text}\`` } = {}) {
   const lines = [];
   if (coupon.description) lines.push(coupon.description);
-  if (coupon.code) lines.push(`🎟️ Código: ${code(coupon.code)}`);
+  const codes = couponCodes(coupon);
+  // Vários códigos ficam num bloco separado da descrição, um por linha com a condição.
+  if (coupon.description && codes.some((item) => item.label)) lines.push('');
+  for (const item of codes) lines.push(`🎟️ ${item.label ? `${item.label}: ` : 'Código: '}${code(item.code)}`);
   if (coupon.expiresAt) lines.push(`⏰ Válido até ${formatDeadline(coupon.expiresAt)}`);
   return lines;
 }
@@ -41,9 +47,14 @@ export function couponMessage(coupon, { content } = {}) {
   const embed = new EmbedBuilder().setColor(PLATFORM_COLORS[coupon.platform] ?? 0x2ECC71)
     .setTitle(coupon.title.slice(0, 256)).setFooter({ text: STORE_LABELS[coupon.platform] ?? coupon.platform }).setTimestamp();
   if (coupon.affiliateUrl.length <= EMBED_URL_MAX) embed.setURL(coupon.affiliateUrl);
-  const description = couponLines(coupon).join('\n') + linkLine(coupon.affiliateUrl, couponButtonLabel(coupon), '🎟️');
-  if (description.trim()) embed.setDescription(description.trim());
-  return { ...(content ? { content } : {}), embeds: [embed], components: linkButton(coupon.affiliateUrl, couponButtonLabel(coupon), '🎟️') };
+  const extra = coupon.extraAffiliateUrl ? [coupon.extraAffiliateUrl, coupon.extraLabel || 'Link do carrinho', '🛒'] : null;
+  const description = couponLines(coupon).join('\n') + linkLine(coupon.affiliateUrl, couponButtonLabel(coupon), '🎟️') + (extra ? linkLine(...extra) : '');
+  if (description.trim()) embed.setDescription(description.trim().slice(0, 4096));
+  if (coupon.image) embed.setImage(coupon.image);
+  // Botão do cupom e, se houver, do link extra na mesma linha.
+  const buttons = [...linkButton(coupon.affiliateUrl, couponButtonLabel(coupon), '🎟️'), ...(extra ? linkButton(...extra) : [])]
+    .flatMap((row) => row.components);
+  return { ...(content ? { content } : {}), embeds: [embed], components: buttons.length ? [new ActionRowBuilder().addComponents(buttons)] : [] };
 }
 
 /**

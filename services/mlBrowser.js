@@ -1,11 +1,15 @@
+import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 
 /**
  * Navegador para o Linkbuilder do Mercado Livre (modo meli.la). Usa o Chrome ou o Edge instalado
  * com um perfil próprio do bot (data/ml_profile), onde o dono faz login uma vez pelo ml-login.js.
- * O navegador é controlado pelo Playwright como ele é: não escondemos a automação nem trocamos o
- * User-Agent. Se o Mercado Livre recusar o navegador automatizado, o erro é repassado.
+ * Por padrão o Playwright abre o navegador (com a marca de automação). Com ML_BROWSER_PLAIN=true,
+ * o navegador abre como no login, sem flags de automação, e o Playwright só se conecta a ele pela
+ * porta de depuração; o User-Agent e o resto não são alterados. É opcional: o Mercado Livre não
+ * autoriza automação no Linkbuilder e pode bloquear de qualquer jeito.
  */
 export const LINKBUILDER_URL = 'https://www.mercadolivre.com.br/afiliados/linkbuilder';
 const CREATE_LINK_URL = 'https://www.mercadolivre.com.br/affiliate-program/api/v2/affiliates/createLink';
@@ -65,8 +69,36 @@ let queue = Promise.resolve();
 let loginOpen = false;
 export const setLoginOpen = (open) => { loginOpen = open; };
 
+const freePort = () => new Promise((done, fail) => {
+  const server = createServer();
+  server.once('error', fail);
+  server.listen(0, '127.0.0.1', () => { const { port } = server.address(); server.close(() => done(port)); });
+});
+
+/** Abre o navegador comum (como no login) com a porta de depuração só em 127.0.0.1 e conecta o Playwright. */
+async function openPlainBrowser(chromium, { offscreen }) {
+  const port = await freePort();
+  const child = spawn(findBrowser(), [
+    `--user-data-dir=${profileDir()}`, `--remote-debugging-port=${port}`, '--remote-debugging-address=127.0.0.1',
+    '--no-first-run', '--no-default-browser-check', ...containerArgs(),
+    ...(offscreen ? ['--window-position=-32000,-32000', '--window-size=1280,800'] : ['--window-size=1280,800']), 'about:blank'
+  ], { stdio: 'ignore' });
+  const kill = () => { if (child.exitCode === null) child.kill(); };
+  try {
+    let browser = null;
+    for (let attempt = 0; attempt < 40 && !browser; attempt += 1) {
+      if (child.exitCode !== null) throw new Error('o navegador fechou ao abrir (o perfil pode estar em uso pelo login)');
+      browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: 2000 }).catch(() => null);
+      if (!browser) await new Promise((done) => setTimeout(done, 250));
+    }
+    if (!browser) throw new Error('não consegui conectar ao navegador');
+    const context = browser.contexts()[0] ?? await browser.newContext();
+    return { context, close: async () => { await browser.close().catch(() => {}); kill(); } };
+  } catch (error) { kill(); throw error; }
+}
+
 /** Abre o perfil logado, vai ao Linkbuilder e chama o createLink de dentro da página. */
-export function createLinksInBrowser(urls, tag, { headless = process.env.ML_BROWSER_HEADLESS !== 'false' } = {}) {
+export function createLinksInBrowser(urls, tag, { headless = process.env.ML_BROWSER_HEADLESS === 'true' } = {}) {
   const run = async () => {
     if (loginOpen) throw new Error('O login do Mercado Livre está aberto no painel; termine o login antes.');
     if (!hasProfile()) throw Object.assign(new Error('Faça o login do Mercado Livre no navegador do bot primeiro (painel → Mercado Livre → Fazer login).'), { session: true });
@@ -77,10 +109,14 @@ export function createLinksInBrowser(urls, tag, { headless = process.env.ML_BROW
     // Para o site continua sendo um navegador comum com janela; só muda onde ela fica no seu monitor.
     // No Docker a janela já fica na tela virtual, invisível.
     const offscreen = !headless && !process.env.BOT_IN_DOCKER && process.env.ML_BROWSER_OFFSCREEN !== 'false';
-    const context = await chromium.launchPersistentContext(profileDir(), {
-      executablePath: findBrowser(), headless, locale: 'pt-BR',
-      args: [...containerArgs(), ...(offscreen ? ['--window-position=-32000,-32000', '--window-size=1280,800'] : [])]
-    });
+    const plain = process.env.ML_BROWSER_PLAIN === 'true';
+    const opened = plain
+      ? await openPlainBrowser(chromium, { offscreen: !process.env.BOT_IN_DOCKER && process.env.ML_BROWSER_OFFSCREEN !== 'false' })
+      : await chromium.launchPersistentContext(profileDir(), {
+        executablePath: findBrowser(), headless, locale: 'pt-BR',
+        args: [...containerArgs(), ...(offscreen ? ['--window-position=-32000,-32000', '--window-size=1280,800'] : [])]
+      }).then((persistent) => ({ context: persistent, close: () => persistent.close() }));
+    const { context } = opened;
     try {
       const page = context.pages()[0] ?? await context.newPage();
       await page.goto(LINKBUILDER_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
@@ -99,7 +135,7 @@ export function createLinksInBrowser(urls, tag, { headless = process.env.ML_BROW
       if (result.status !== 200 || !result.body) throw new Error(`Linkbuilder respondeu HTTP ${result.status}: ${result.text ?? ''}`);
       return (result.body.urls ?? []).map((item) => item?.short_url ?? '');
     } finally {
-      await context.close();
+      await opened.close();
     }
   };
   const next = queue.then(run, run);

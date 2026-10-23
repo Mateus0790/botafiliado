@@ -17,6 +17,11 @@ export const STORES = {
     configured: (env) => Boolean(env.ALIEXPRESS_APP_KEY && env.ALIEXPRESS_APP_SECRET && env.ALIEXPRESS_TRACKING_ID),
     search: searchAliExpressOffers
   },
+  amazon: {
+    label: 'Amazon', enabledKey: 'STORE_AMAZON',
+    // Sem a API de produtos (liberada só após 3 vendas), não há busca: só link manual com a sua tag.
+    configured: (env) => Boolean(env.AMAZON_TAG)
+  },
   mercadolivre: {
     label: 'Mercado Livre', enabledKey: 'STORE_MERCADOLIVRE',
     configured: (env) => Boolean(env.ML_CLIENT_ID && env.ML_CLIENT_SECRET),

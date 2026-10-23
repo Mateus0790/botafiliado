@@ -136,3 +136,25 @@ test('filtros de nota, vendas e comissão não se aplicam a métricas desconheci
   process.env.AUTO_MAX_PRICE = '40';
   assert.deepEqual(pickOffers([ml], store, autoConfig(), 1), [], 'preço máximo continua valendo');
 });
+
+test('Mercado Livre recusado: sai do rodízio por 6 h e a rodada segue com a próxima loja', async () => {
+  const store = fakeStore();
+  const ml = { ...offer('MLB1'), platform: 'mercadolivre', rating: null, sales: null, commissionRate: null };
+  const sources = [
+    { id: 'mercadolivre', search: async () => ({ products: [ml], hasNextPage: false }) },
+    { id: 'shopee', search: async () => ({ products: [offer(2)], hasNextPage: false }) }
+  ];
+  const publish = async (product) => {
+    if (product.platform === 'mercadolivre') throw new Error('O firewall do Mercado Livre bloqueou o navegador do bot (HTTP 403).');
+    return { sent: ['Discord'], errors: [] };
+  };
+  const result = await runAutoPost({ store, sources, publish, now: noon });
+  assert.deepEqual(result.posted.map((product) => product.id), ['2']);
+  assert.match(result.errors[0], /firewall[\s\S]*fora da postagem automática por 6 h/);
+  assert.equal(Number(store.getSetting('ml_blocked_until')), noon.getTime() + 6 * 3_600_000);
+  // Na rodada seguinte o Mercado Livre nem é consultado.
+  let mlSearched = false;
+  sources[0].search = async () => { mlSearched = true; return { products: [], hasNextPage: false }; };
+  await runAutoPost({ store, sources, publish, now: new Date(noon.getTime() + 60_000) });
+  assert.equal(mlSearched, false);
+});

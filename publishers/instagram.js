@@ -51,7 +51,7 @@ export function instagramCaption(product, { env = process.env } = {}) {
   const details = [highlights.join('  ·  ')];
   if (product.rating) details.push(`⭐ ${product.rating.toFixed(1)}  ·  ${product.sales.toLocaleString('pt-BR')} vendidos`);
   if (product.freeShipping) details.push('🚚 Frete grátis');
-  const header = env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!';
+  const header = product.header ?? (env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!');
   const cta = `💬 Comente ${instagramKeyword(env).toUpperCase()} que eu te mando o link no direct!`;
   const build = (title) => [header, title, details.join('\n'), cta, hashtags(env)].filter(Boolean).join('\n\n');
   const caption = build(product.title);

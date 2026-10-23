@@ -15,6 +15,7 @@ export const SECTIONS = [
   { id: 'shopee', title: 'Shopee', description: 'Shopee Affiliate Open API. Entra na postagem automática e na manual.' },
   { id: 'aliexpress', title: 'AliExpress', description: 'AliExpress Affiliate Open Platform. Entra na postagem automática e na manual.' },
   { id: 'mercadolivre', title: 'Mercado Livre', description: 'App do developers.mercadolivre.com.br para buscar produtos e preços. Para o link de afiliado, escolha o modo: parâmetros matt_word/matt_tool (oficial) ou meli.la pelo Linkbuilder (não oficial: o bot usa um navegador com perfil próprio; faça o login uma vez pelo botão "Fazer login do Mercado Livre" — no PC abre o navegador na tela, no Docker abre a tela do navegador do container no seu navegador, com senha). Se a sessão expirar, o bot para de postar Mercado Livre e avisa no seu privado do Telegram.' },
+  { id: 'amazon', title: 'Amazon', description: 'Amazon Associados (associados.amazon.com.br). Com a sua tag, links da Amazon (amazon.com.br, amzn.to) viram links de afiliado no Postar link, no privado do Telegram e nos cupons. A API de produtos só é liberada pela Amazon depois de 3 vendas; até lá não há busca automática nem preço automático: no privado do Telegram, escreva o título e o preço nas linhas abaixo do link.' },
   { id: 'geral', title: 'Geral', description: 'Fuso horário e rede.' }
 ];
 
@@ -39,6 +40,11 @@ export const FIELDS = [
   { key: 'AUTO_MAX_PRICE', section: 'auto', label: 'Preço máximo (R$, vazio = sem limite)', type: 'number', min: 0, step: 0.01, default: '' },
   { key: 'AUTO_BLOCKED_WORDS', section: 'auto', label: 'Palavras bloqueadas no título (uma por linha, ex.: capinha)', type: 'list', default: '' },
   { key: 'AUTO_REPEAT_DAYS', section: 'auto', label: 'Repostar o mesmo produto depois de (dias, 0 = nunca)', type: 'number', min: 0, max: 365, default: '0' },
+  { key: 'URGENT_ENABLED', section: 'auto', label: 'Ofertas urgentes: procurar com frequência e postar na hora produtos com desconto absurdo', type: 'bool', default: 'false' },
+  { key: 'URGENT_MIN_DISCOUNT', section: 'auto', label: 'Ofertas urgentes: desconto mínimo (%)', type: 'number', min: 30, max: 99, default: '70' },
+  { key: 'URGENT_INTERVAL_MIN', section: 'auto', label: 'Ofertas urgentes: procurar a cada (minutos)', type: 'number', min: 5, max: 120, default: '15' },
+  { key: 'URGENT_MAX_PER_DAY', section: 'auto', label: 'Ofertas urgentes: máximo por dia', type: 'number', min: 1, max: 30, default: '5' },
+  { key: 'URGENT_HEADER', section: 'auto', label: 'Ofertas urgentes: texto acima da oferta', type: 'text', maxLength: 120, default: '🔥 URGENTE: DESCONTO ABSURDO!' },
   { key: 'AUTO_COUPONS_ENABLED', section: 'auto', label: 'Cupons automáticos: buscar e postar cupons e promoções reais da Shopee e do AliExpress', type: 'bool', default: 'false' },
   { key: 'AUTO_COUPONS_INTERVAL_H', section: 'auto', label: 'Cupons automáticos: buscar a cada (horas)', type: 'number', min: 1, max: 48, default: '6' },
   { key: 'AUTO_COUPONS_PER_RUN', section: 'auto', label: 'Cupons automáticos: quantos postar por busca', type: 'number', min: 1, max: 5, default: '1' },
@@ -94,7 +100,11 @@ export const FIELDS = [
   { key: 'ML_AFFILIATE_PARAMS', section: 'mercadolivre', label: 'Parâmetros de afiliado (ex.: matt_word=…&matt_tool=…)', type: 'text', default: '' },
   { key: 'ML_ETIQUETA', section: 'mercadolivre', label: 'Etiqueta em uso no Linkbuilder (modo meli.la)', type: 'text', pattern: /^[\w.-]{1,60}$/, default: '' },
   { key: 'ML_BROWSER_HEADLESS', section: 'mercadolivre', label: 'Navegador do modo meli.la sem janela (o Mercado Livre recusou em teste; deixe desligado)', type: 'bool', default: 'false' },
+  { key: 'ML_BROWSER_PLAIN', section: 'mercadolivre', label: 'Abrir o navegador do modo meli.la como um navegador comum, sem a marca de automação (tente se o Mercado Livre bloquear; não é autorizado pelo Mercado Livre)', type: 'bool', default: 'false' },
   { key: 'ML_BROWSER_OFFSCREEN', section: 'mercadolivre', label: 'Abrir a janela do navegador fora da tela (não aparece no monitor)', type: 'bool', default: 'true' },
+
+  { key: 'STORE_AMAZON', section: 'amazon', label: 'Divulgar produtos da Amazon', type: 'bool', default: 'true' },
+  { key: 'AMAZON_TAG', section: 'amazon', label: 'Tag de afiliado (ID de rastreamento, ex.: seutag-20)', type: 'text', pattern: /^[\w.-]{2,60}-\d{2}$/, default: '' },
 
   { key: 'TZ', section: 'geral', label: 'Fuso horário', type: 'text', pattern: /^[A-Za-z_]+(\/[A-Za-z_]+)*$/, default: 'America/Sao_Paulo' },
   { key: 'REQUEST_TIMEOUT_MS', section: 'geral', label: 'Tempo limite das APIs (ms)', type: 'number', min: 1000, max: 120000, default: '15000' }

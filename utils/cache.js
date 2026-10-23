@@ -29,6 +29,12 @@ export function createCache(databasePath = process.env.DATABASE_PATH || './data/
   if (!db.prepare('PRAGMA table_info(posted_products)').all().some((column) => column.name === 'title')) {
     db.exec('ALTER TABLE posted_products ADD COLUMN title TEXT');
   }
+  // Cupons ganharam vários códigos, imagem, link extra (ex.: carrinho) e início agendado.
+  const couponCols = new Set(db.prepare('PRAGMA table_info(coupons)').all().map((column) => column.name));
+  for (const [name, type] of [['codes', "TEXT NOT NULL DEFAULT '[]'"], ['image', 'TEXT'], ['extra_label', 'TEXT'], ['extra_url', 'TEXT'],
+    ['extra_affiliate_url', 'TEXT'], ['starts_at', 'TEXT']]) {
+    if (!couponCols.has(name)) db.exec(`ALTER TABLE coupons ADD COLUMN ${name} ${type}`);
+  }
   const has = db.prepare('SELECT 1 FROM posted_products WHERE platform = ? AND product_id = ?');
   const hasSince = db.prepare('SELECT 1 FROM posted_products WHERE platform = ? AND product_id = ? AND posted_at >= ?');
   // Repostar o mesmo produto (depois do prazo configurado) atualiza o registro existente.
@@ -46,13 +52,15 @@ export function createCache(databasePath = process.env.DATABASE_PATH || './data/
   const deleteSetting = db.prepare('DELETE FROM settings WHERE key = ?');
   const listSettings = db.prepare("SELECT key, value FROM settings WHERE key LIKE ? ESCAPE '\\'");
   const couponColumns = `id, platform, title, code, description, url, affiliate_url AS affiliateUrl, expires_at AS expiresAt,
-    repeat_hours AS repeatHours, active, post_count AS postCount, last_posted_at AS lastPostedAt, created_at AS createdAt`;
+    repeat_hours AS repeatHours, active, post_count AS postCount, last_posted_at AS lastPostedAt, created_at AS createdAt,
+    codes, image, extra_label AS extraLabel, extra_url AS extraUrl, extra_affiliate_url AS extraAffiliateUrl, starts_at AS startsAt`;
   const listCoupons = db.prepare(`SELECT ${couponColumns} FROM coupons ORDER BY active DESC, created_at DESC`);
   const getCoupon = db.prepare(`SELECT ${couponColumns} FROM coupons WHERE id = ?`);
-  const insertCoupon = db.prepare(`INSERT INTO coupons(platform, title, code, description, url, affiliate_url, expires_at, repeat_hours, active, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  const insertCoupon = db.prepare(`INSERT INTO coupons(platform, title, code, description, url, affiliate_url, expires_at, repeat_hours, active,
+    codes, image, extra_label, extra_url, extra_affiliate_url, starts_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const updateCoupon = db.prepare(`UPDATE coupons SET platform = ?, title = ?, code = ?, description = ?, url = ?, affiliate_url = ?,
-    expires_at = ?, repeat_hours = ?, active = ? WHERE id = ?`);
+    expires_at = ?, repeat_hours = ?, active = ?, codes = ?, image = ?, extra_label = ?, extra_url = ?, extra_affiliate_url = ?, starts_at = ? WHERE id = ?`);
   const couponPosted = db.prepare('UPDATE coupons SET post_count = post_count + 1, last_posted_at = ? WHERE id = ?');
   const setCouponActive = db.prepare('UPDATE coupons SET active = ? WHERE id = ?');
   const deleteCoupon = db.prepare('DELETE FROM coupons WHERE id = ?');
@@ -65,13 +73,15 @@ export function createCache(databasePath = process.env.DATABASE_PATH || './data/
   const hasComment = db.prepare('SELECT 1 FROM instagram_comments WHERE comment_id = ?');
   const addComment = db.prepare(`INSERT OR IGNORE INTO instagram_comments(comment_id, media_id, username, status, handled_at) VALUES (?, ?, ?, ?, ?)`);
   const countReplies = db.prepare("SELECT COUNT(*) AS total FROM instagram_comments WHERE status = 'enviado'");
-  const toCoupon = (row) => (row ? { ...row, active: Boolean(row.active) } : null);
+  const parseCodes = (text) => { try { return JSON.parse(text || '[]'); } catch { return []; } };
+  const toCoupon = (row) => (row ? { ...row, active: Boolean(row.active), codes: parseCodes(row.codes) } : null);
   return {
     listCoupons: () => listCoupons.all().map(toCoupon),
     getCoupon: (id) => toCoupon(getCoupon.get(id)),
     saveCoupon: (coupon) => {
-      const values = [coupon.platform, coupon.title, coupon.code, coupon.description, coupon.url, coupon.affiliateUrl,
-        coupon.expiresAt ?? null, coupon.repeatHours, coupon.active ? 1 : 0];
+      const values = [coupon.platform, coupon.title, coupon.code ?? '', coupon.description ?? '', coupon.url, coupon.affiliateUrl,
+        coupon.expiresAt ?? null, coupon.repeatHours, coupon.active ? 1 : 0, JSON.stringify(coupon.codes ?? []), coupon.image ?? null,
+        coupon.extraLabel ?? null, coupon.extraUrl ?? null, coupon.extraAffiliateUrl ?? null, coupon.startsAt ?? null];
       if (coupon.id) { updateCoupon.run(...values, coupon.id); return coupon.id; }
       return Number(insertCoupon.run(...values, new Date().toISOString()).lastInsertRowid);
     },
