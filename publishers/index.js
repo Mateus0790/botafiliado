@@ -59,7 +59,7 @@ export async function publishOffer(product, { client, discordChannelId, store })
   await ensureMeliLink(product);
   return publish({
     client, discordChannelId,
-    discordMessage: () => productMessage(product, { content: `**${postHeader()}**` }),
+    discordMessage: () => productMessage(product, { content: `**${product.header ?? postHeader()}**` }),
     senders: [
       ['Telegram', telegramEnabled(), () => sendTelegramOffer(product)],
       ['WhatsApp', whatsappEnabled(), () => sendWhatsappOffer(product)],

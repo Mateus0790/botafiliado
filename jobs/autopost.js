@@ -35,6 +35,13 @@ export function autoConfig(env = process.env) {
   };
 }
 
+// Quando o Linkbuilder do Mercado Livre recusa (sessão ou firewall), o Mercado Livre sai do
+// rodízio por um tempo em vez de fazer toda rodada dele falhar.
+export const ML_PAUSE_KEY = 'ml_blocked_until';
+const ML_PAUSE_MS = 6 * 60 * 60 * 1000;
+export const mlPaused = (store, now = new Date()) => Number(store.getSetting?.(ML_PAUSE_KEY) || 0) > now.getTime();
+const isMeliFailure = (product, error) => product.platform === 'mercadolivre' && /Linkbuilder|Mercado Livre|meli\.la/i.test(error.message);
+
 const normalizeText = (text) => String(text).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const VARIANT_WINDOW_DAYS = 7;
@@ -84,9 +91,10 @@ export function pickOffers(products, store, config, count, { now = new Date(), s
  * Com 2 palavras e 2 lojas a ordem é: palavra1/loja1, palavra1/loja2, palavra2/loja1, palavra2/loja2.
  * `sources` permite injetar buscas nos testes; por padrão vem das lojas ativas com credenciais.
  */
-export async function runAutoPost({ client, store, now = new Date(), search, sources, publish = publishOffer, force = false }) {
+export async function runAutoPost({ client, store, now = new Date(), search, sources, publish = publishOffer, force = false, retried = false }) {
   const config = autoConfig();
-  const active = sources ?? (search ? [{ id: 'shopee', search }] : config.stores.map((id) => ({ id, search: STORES[id].search })));
+  const active = (sources ?? (search ? [{ id: 'shopee', search }] : config.stores.map((id) => ({ id, search: STORES[id].search }))))
+    .filter((source) => source.id !== 'mercadolivre' || !mlPaused(store, now));
   if (!config.terms.length) return { posted: [], reason: 'Nenhuma palavra-chave ou nicho configurado.' };
   if (!active.length) return { posted: [], reason: 'Nenhuma loja ativa com credenciais para a postagem automática (Shopee ou AliExpress).' };
   if (!destinations(config.channelId).length) return { posted: [], reason: 'Nenhum destino configurado (canal do Discord, Telegram, WhatsApp ou Instagram).' };
@@ -112,14 +120,28 @@ export async function runAutoPost({ client, store, now = new Date(), search, sou
   if (!picked.length) return { keyword, store: storeLabel, posted: [], reason: `Nenhuma oferta nova para "${keyword}" no ${storeLabel} dentro dos filtros.` };
 
   const errors = [];
+  const posted = [];
   let sentTo = [];
   for (const product of picked) {
-    const result = await publish(product, { client, discordChannelId: config.channelId, store });
-    store.markPosted(product, config.channelId || 'telegram');
-    sentTo = result.sent;
-    errors.push(...result.errors);
+    try {
+      const result = await publish(product, { client, discordChannelId: config.channelId, store });
+      store.markPosted(product, config.channelId || 'telegram');
+      posted.push(product);
+      sentTo = result.sent;
+      errors.push(...result.errors);
+    } catch (error) {
+      if (!isMeliFailure(product, error)) throw error;
+      store.setSetting(ML_PAUSE_KEY, String(now.getTime() + ML_PAUSE_MS));
+      errors.push(`${error.message} O Mercado Livre fica fora da postagem automática por 6 h.`);
+      break;
+    }
   }
-  return { keyword, store: storeLabel, posted: picked, sentTo, errors };
+  // O Mercado Livre recusou: a rodada segue com a próxima loja do rodízio.
+  if (!posted.length && errors.length && !retried) {
+    const next = await runAutoPost({ client, store, now, search, sources, publish, force, retried: true });
+    return { ...next, errors: [...errors, ...(next.errors ?? [])] };
+  }
+  return { keyword, store: storeLabel, posted, sentTo, ...(posted.length ? {} : { reason: errors[0] }), errors };
 }
 
 /**

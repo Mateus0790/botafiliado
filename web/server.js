@@ -14,6 +14,7 @@ import { destinations, publishOffer } from '../publishers/index.js';
 import { registerCommands } from '../commands/index.js';
 import { storesStatus } from '../services/stores.js';
 import { couponStatus, postCoupon, saveCoupon } from '../jobs/coupons.js';
+import { ML_PAUSE_KEY } from '../jobs/autopost.js';
 import { createMeliLink } from '../services/mlLinkbuilder.js';
 import { finishLogin, startLogin } from '../services/mlLogin.js';
 
@@ -68,7 +69,7 @@ function preview(product) {
   return { platform, platformLabel, id, title, price, image, affiliateUrl, discount, rating, sales, commissionRate, freeShipping, originalPrice };
 }
 
-export function createPanel({ store, bot, autopost, autoCoupons, logger = console, publicDir = new URL('./public/', import.meta.url) }) {
+export function createPanel({ store, bot, autopost, autoCoupons, urgent, logger = console, publicDir = new URL('./public/', import.meta.url) }) {
   const auth = createAuth(store);
   // Sem senha definida, o primeiro acesso exige este código, que só aparece no log do container.
   let setupCode = auth.hasPassword() ? null : crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -87,6 +88,7 @@ export function createPanel({ store, bot, autopost, autoCoupons, logger = consol
         destinations: destinations(channelId),
         autopost: autopost.state(),
         stores: storesStatus(),
+        mlPausedUntil: Number(store.getSetting(ML_PAUSE_KEY) || 0) > Date.now() ? new Date(Number(store.getSetting(ML_PAUSE_KEY))).toISOString() : null,
         totalPosts: store.countPosts()
       }
     };
@@ -96,6 +98,14 @@ export function createPanel({ store, bot, autopost, autoCoupons, logger = consol
     async 'run-now'() {
       const result = await autopost.runNow();
       return { message: result.posted.length ? `Postei ${result.posted.length} oferta(s) de "${result.keyword}" (${result.store}) em ${result.sentTo.join(' e ')}.` : result.reason,
+        posted: result.posted.map(preview), errors: result.errors ?? [] };
+    },
+    async 'urgent-now'() {
+      if (!urgent) throw new Error('Ofertas urgentes indisponíveis.');
+      const result = await urgent.runNow();
+      if (!result) throw new Error('Já existe uma busca de ofertas urgentes em andamento.');
+      const [product] = result.posted;
+      return { message: product ? `Postei "${product.title}" (${product.discount}% OFF) em ${result.sentTo.join(' e ')}.` : result.reason,
         posted: result.posted.map(preview), errors: result.errors ?? [] };
     },
     async 'coupons-now'() {
@@ -208,6 +218,8 @@ export function createPanel({ store, bot, autopost, autoCoupons, logger = consol
       if (changed.includes('AUTO_KEYWORDS')) store.setSetting('auto_keyword_index', '0');
       if (changed.some((key) => SCHEDULE_KEYS.includes(key))) autopost.reschedule();
       if (changed.some((key) => DISCORD_KEYS.includes(key))) bot.restart().catch((error) => logger.error(`Discord: ${error.message}`));
+      // Mexeu no Mercado Livre (login, modo, navegador): volta a tentar na hora.
+      if (changed.some((key) => key.startsWith('ML_') || key === 'STORE_MERCADOLIVRE')) store.deleteSetting(ML_PAUSE_KEY);
       if (changed.includes('WHATSAPP_MODE') && !whatsappWebMode()) disconnectWhatsapp().catch(() => {});
       if (changed.length) logger.log(`[painel] configurações alteradas: ${changed.join(', ')}`);
       return json(res, 200, { changed, state: state() });

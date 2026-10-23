@@ -6,6 +6,7 @@ import { createDiscordBot } from './bot/discord.js';
 import { startAutoPost, autoConfig } from './jobs/autopost.js';
 import { startCouponScheduler } from './jobs/coupons.js';
 import { startAutoCoupons } from './jobs/autoCoupons.js';
+import { startUrgent } from './jobs/urgent.js';
 import { startTelegramInbox } from './publishers/telegramInbox.js';
 import { startInstagramWatcher } from './jobs/instagramComments.js';
 import { startWhatsappWeb } from './publishers/whatsappWeb.js';
@@ -22,9 +23,10 @@ const inbox = startTelegramInbox({ store: cache, getClient: bot.getClient });
 autopost = startAutoPost({ getClient: bot.getClient, store: cache, notify: inbox.notify });
 const coupons = startCouponScheduler({ getClient: bot.getClient, store: cache, notify: inbox.notify });
 const autoCoupons = startAutoCoupons({ getClient: bot.getClient, store: cache, notify: inbox.notify });
+const urgent = startUrgent({ getClient: bot.getClient, store: cache, notify: inbox.notify });
 const instagram = startInstagramWatcher({ store: cache, notify: inbox.notify });
 const whatsapp = startWhatsappWeb({ store: cache });
-const panel = createPanel({ store: cache, bot, autopost, autoCoupons });
+const panel = createPanel({ store: cache, bot, autopost, autoCoupons, urgent });
 
 const port = Number(process.env.PAINEL_PORTA || 3000);
 await panel.listen(port);
@@ -41,6 +43,7 @@ async function shutdown() {
   autopost.stop();
   coupons.stop();
   autoCoupons.stop();
+  urgent.stop();
   instagram.stop();
   await whatsapp.stop();
   inbox.stop();

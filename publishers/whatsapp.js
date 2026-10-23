@@ -17,7 +17,7 @@ const MESSAGE_LIMIT = 4096;
 const BUTTON_URL_LIMIT = 2000;
 
 /** Texto da oferta com a formatação do WhatsApp (*negrito*, ~riscado~). */
-export function whatsappText(product, { header = process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!' } = {}) {
+export function whatsappText(product, { header = product.header ?? (process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!') } = {}) {
   const original = originalPriceText(product);
   const highlights = [`${original ? `~${original}~ → ` : ''}💰 *${product.price}*`];
   if (product.discount) highlights.push(`🏷️ *${product.discount}% OFF*`);

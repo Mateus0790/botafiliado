@@ -10,7 +10,7 @@ export function telegramConfigured(env = process.env) {
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** Legenda em HTML no mesmo estilo do embed do Discord. */
-export function telegramCaption(product, { header = `<b>${escapeHtml(process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!')}</b>` } = {}) {
+export function telegramCaption(product, { header = `<b>${escapeHtml(product.header ?? (process.env.POST_HEADER?.trim() || '🚨 PROMOÇÃO ENCONTRADA!'))}</b>` } = {}) {
   const original = originalPriceText(product);
   const highlights = [`${original ? `<s>${escapeHtml(original)}</s> → ` : ''}💰 <b>${escapeHtml(product.price)}</b>`];
   if (product.discount) highlights.push(`🏷️ <b>${product.discount}% OFF</b>`);

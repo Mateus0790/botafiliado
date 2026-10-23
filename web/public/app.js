@@ -2,7 +2,7 @@
 
 const PAGES = [
   { id: 'inicio', title: 'Início', icon: '🏠', description: 'Visão geral do bot.' },
-  { id: 'auto', title: 'Postagem automática', icon: '⏱️', group: 'Configuração', sections: ['auto'], actions: ['run-now', 'coupons-now'] },
+  { id: 'auto', title: 'Postagem automática', icon: '⏱️', group: 'Configuração', sections: ['auto'], actions: ['run-now', 'urgent-now', 'coupons-now'] },
   { id: 'mensagem', title: 'Mensagem', icon: '💬', sections: ['mensagem'] },
   { id: 'discord', title: 'Discord', icon: '🎮', sections: ['discord'], actions: ['test-discord', 'register-commands'] },
   { id: 'telegram', title: 'Telegram', icon: '✈️', sections: ['telegram'], actions: ['test-telegram'] },
@@ -17,7 +17,7 @@ const PAGES = [
 ];
 
 const ACTION_LABELS = {
-  'run-now': 'Rodar agora', 'coupons-now': 'Buscar cupons agora', 'test-discord': 'Testar conexão', 'register-commands': 'Registrar comandos',
+  'run-now': 'Rodar agora', 'coupons-now': 'Buscar cupons agora', 'urgent-now': 'Procurar oferta urgente agora', 'test-discord': 'Testar conexão', 'register-commands': 'Registrar comandos',
   'test-telegram': 'Testar canal', 'test-whatsapp': 'Mandar exemplo no meu privado', 'test-instagram': 'Testar conta', 'test-shopee': 'Testar API', 'test-ml-session': 'Testar sessão meli.la',
   'ml-login-start': 'Fazer login do Mercado Livre', 'ml-login-stop': 'Concluir login'
 };
@@ -194,6 +194,9 @@ function storesCard(onChange) {
   const describe = (store) => {
     if (!store.enabled) return ['desativada', 'off', 'Não divulga links desta loja.'];
     if (!store.configured) return ['sem credenciais', 'warn', 'Preencha as credenciais em Lojas e APIs.'];
+    if (store.id === 'mercadolivre' && store.inAuto && state.status.mlPausedUntil) {
+      return ['pausada na automática', 'warn', `O Linkbuilder recusou o navegador; volta a tentar ${fmtDate(state.status.mlPausedUntil)} (ou ao mudar algo do Mercado Livre).`];
+    }
     if (store.inAuto) return ['automática + manual', 'ok', 'Entra no rodízio da postagem automática.'];
     return ['só manual', 'ok', store.supportsAuto ? '' : 'A API não permite busca automática; use Postar link ou /postar.'];
   };

@@ -62,6 +62,10 @@ Mande `/id` para o bot no privado: ele mostra o seu ID de usuário. Coloque-o em
 
 O bot lê o privado por long polling da Bot API (`getUpdates`); se outra cópia do bot estiver rodando com o mesmo token (ex.: Docker e PC ao mesmo tempo), o Telegram só entrega as mensagens para uma delas e o log avisa.
 
+## Ofertas urgentes (desconto absurdo)
+
+Em **Postagem automática**, ligue **Ofertas urgentes**. A cada 15 minutos (configurável), dentro do horário de postagem, o bot pega a próxima palavra-chave do rodízio, busca em todas as lojas ativas e, se achar produto com desconto igual ou acima do mínimo (padrão **70%**), posta **na hora** com o título "🔥 URGENTE: DESCONTO ABSURDO!" (editável). Usa os mesmos filtros de nota, vendas, preço e palavras bloqueadas, não repete produto já postado e tem limite por dia (padrão 5). O desconto é o que a loja informa. **Procurar oferta urgente agora** testa na hora.
+
 ## Filtros, nichos e repetição
 
 - **Nichos prontos** (Tecnologia, Casa, Pet…): somam palavras-chave para Shopee/AliExpress e, no Mercado Livre, usam direto a categoria certa (`services/nichos.js`).
@@ -166,6 +170,8 @@ A assinatura MD5 concatena `App Secret + parâmetros ordenados (chave+valor) + A
 
 - **Parâmetros** (padrão, oficial): anexa `matt_word`/`matt_tool`. Em teste real (10/2026) o clique não apareceu no relatório do portal.
 - **meli.la pelo Linkbuilder** (não oficial, só fora do Docker): o firewall do Mercado Livre recusa requisições que não venham de um navegador, então o bot abre o Chrome/Edge deste PC com um perfil próprio (`data/ml_profile`) e chama o `createLink` de dentro da página do Linkbuilder, com a sua etiqueta. Faça o login uma vez com `node ml-login.js` (abre o navegador comum, sem automação). A automação não é escondida; em teste (10/2026) o modo sem janela foi recusado (HTTP 403) e com janela visível funcionou, então o padrão é "Navegador sem janela" desligado: uma janela abre por alguns segundos a cada link. É uma API interna, sujeita aos termos do programa e a mudanças sem aviso. Na automática o link só é gerado para a oferta que vai ser postada. Se a sessão expirar, o bot não posta Mercado Livre (para não publicar link sem comissão) e avisa no privado do Telegram. Botão **Testar sessão meli.la** no painel.
+
+Se o Linkbuilder recusar (sessão expirada ou firewall), a rodada automática segue com a próxima loja e o Mercado Livre fica **6 h fora do rodízio** (o cartão Lojas mostra até quando); mudar qualquer configuração do Mercado Livre libera na hora. Se o firewall bloquear o navegador do bot (mensagem "O firewall do Mercado Livre bloqueou…"), dá para ligar **Abrir o navegador como um navegador comum**: o Chromium abre como no login, sem as flags de automação, e o bot só se conecta a ele pela porta de depuração (apenas em 127.0.0.1). Não é autorizado pelo Mercado Livre e pode ser bloqueado do mesmo jeito.
 
 Links curtos (`s.shopee.com.br`, `s.click.aliexpress.com`, `mercadolivre.com/sec/...`) são expandidos antes da consulta.
 
