@@ -5,9 +5,10 @@ import { generateAliExpressLink } from './aliexpress.js';
 import { addAffiliateParams } from './mercadolivre.js';
 import { createMeliLink, linkbuilderEnabled } from './mlLinkbuilder.js';
 import { resolveFinalUrl } from '../utils/http.js';
+import { amazonAffiliateUrl } from './amazon.js';
 
 // Links curtos de terceiros podem carregar o rastreio de outro afiliado: expandimos antes de converter.
-const SHORT_HOSTS = /^(s\.shopee\.com\.br|shope\.ee|s\.click\.aliexpress\.com|a\.aliexpress\.com|click\.aliexpress\.com|mercadolivre\.com)$/;
+const SHORT_HOSTS = /^(s\.shopee\.com\.br|shope\.ee|s\.click\.aliexpress\.com|a\.aliexpress\.com|click\.aliexpress\.com|mercadolivre\.com|amzn\.to|a\.co)$/;
 // Parâmetros de rastreio que não devem ir para o link convertido.
 const TRACKING_PARAMS = /^(utm_|af_|mmp_|sp_atk$|xptdk$|smtt$|aff_|matt_|ref$|forceInApp$)/;
 
@@ -31,6 +32,7 @@ export async function toAffiliateLink(input) {
   const target = cleanUrl(SHORT_HOSTS.test(host) ? await resolveFinalUrl(url) : url);
   if (platform === 'shopee') return { platform, affiliateUrl: await generateShopeeLink(target) };
   if (platform === 'aliexpress') return { platform, affiliateUrl: await generateAliExpressLink(target) };
+  if (platform === 'amazon') return { platform, affiliateUrl: amazonAffiliateUrl(target) };
   if (linkbuilderEnabled()) return { platform, affiliateUrl: await createMeliLink(target) };
   if (!process.env.ML_AFFILIATE_PARAMS) throw new Error('Preencha os parâmetros de afiliado do Mercado Livre (matt_word e matt_tool) ou use um link meli.la.');
   return { platform, affiliateUrl: addAffiliateParams(target, process.env.ML_AFFILIATE_PARAMS) };

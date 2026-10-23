@@ -8,7 +8,7 @@ const PAGES = [
   { id: 'telegram', title: 'Telegram', icon: '✈️', sections: ['telegram'], actions: ['test-telegram'] },
   { id: 'whatsapp', title: 'WhatsApp', icon: '📲', sections: ['whatsapp'], actions: ['test-whatsapp'] },
   { id: 'instagram', title: 'Instagram', icon: '📸', sections: ['instagram'], actions: ['test-instagram'] },
-  { id: 'lojas', title: 'Lojas e APIs', icon: '🛍️', sections: ['shopee', 'aliexpress', 'mercadolivre'], description: 'Credenciais das plataformas de afiliados.' },
+  { id: 'lojas', title: 'Lojas e APIs', icon: '🛍️', sections: ['shopee', 'aliexpress', 'mercadolivre', 'amazon'], description: 'Credenciais das plataformas de afiliados.' },
   { id: 'postar', title: 'Postar link', icon: '📣', group: 'Ferramentas', description: 'Pré-visualize ou publique um produto de qualquer loja.' },
   { id: 'cupons', title: 'Cupons', icon: '🎟️', description: 'Cadastre cupons com o link da página da loja: o bot gera o link de afiliado e publica no Discord e no Telegram.' },
   { id: 'historico', title: 'Histórico', icon: '🗂️', description: 'Produtos já postados. Liberar um item permite postá-lo de novo.' },
@@ -22,7 +22,7 @@ const ACTION_LABELS = {
   'ml-login-start': 'Fazer login do Mercado Livre', 'ml-login-stop': 'Concluir login'
 };
 const SECTION_ACTIONS = { shopee: ['test-shopee'], mercadolivre: ['ml-login-start', 'ml-login-stop', 'test-ml-session'] };
-const LINK_TEST_SECTIONS = new Set(['aliexpress', 'mercadolivre']);
+const LINK_TEST_SECTIONS = new Set(['aliexpress', 'mercadolivre', 'amazon']);
 
 let state = null;
 let refreshTimer = null;
@@ -476,7 +476,7 @@ function renderPost(container) {
 
 // ---------- cupons ----------
 const REPEAT_OPTIONS = [[0, 'Não repetir'], [2, 'A cada 2 horas'], [4, 'A cada 4 horas'], [6, 'A cada 6 horas'], [12, 'A cada 12 horas'], [24, 'Uma vez por dia'], [48, 'A cada 2 dias']];
-const STORE_NAMES = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre' };
+const STORE_NAMES = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre', amazon: 'Amazon' };
 const STATUS_KIND = { ativo: 'ok', agendado: 'warn', pausado: 'off', expirado: 'danger' };
 
 // datetime-local trabalha no fuso do navegador; o servidor guarda em ISO (UTC).

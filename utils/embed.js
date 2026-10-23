@@ -1,9 +1,9 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { formatPrice } from '../services/price.js';
 
-const PLATFORM_COLORS = { shopee: 0xEE4D2D, aliexpress: 0xE62E04, mercadolivre: 0xFFE600 };
+const PLATFORM_COLORS = { shopee: 0xEE4D2D, aliexpress: 0xE62E04, mercadolivre: 0xFFE600, amazon: 0xFF9900 };
 // "na Shopee", mas "no AliExpress" e "no Mercado Livre".
-const PREPOSITION = { shopee: 'na', aliexpress: 'no', mercadolivre: 'no' };
+const PREPOSITION = { shopee: 'na', aliexpress: 'no', mercadolivre: 'no', amazon: 'na' };
 
 export const buyLabel = (product) => `Comprar ${PREPOSITION[product.platform] ?? 'na'} ${product.platformLabel}`;
 
@@ -16,7 +16,7 @@ const linkButton = (url, label, emoji) => (url.length <= BUTTON_URL_MAX
   : []);
 const linkLine = (url, label, emoji) => (url.length > BUTTON_URL_MAX ? `\n\n${emoji} [${label}](${url})` : '');
 
-export const STORE_LABELS = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre' };
+export const STORE_LABELS = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre', amazon: 'Amazon' };
 export const couponButtonLabel = (coupon) =>
   `${coupon.code ? 'Pegar cupom' : 'Ver promoção'} ${PREPOSITION[coupon.platform] ?? 'na'} ${STORE_LABELS[coupon.platform] ?? coupon.platform}`;
 

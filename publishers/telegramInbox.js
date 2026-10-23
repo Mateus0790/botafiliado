@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { callTelegram, sendTelegramOffer } from './telegram.js';
 import { publishOffer, destinations } from './index.js';
 import { detectPlatform, resolveProduct } from '../services/index.js';
+import { hintsFromText } from '../services/amazon.js';
 
 // O long polling precisa terminar antes do tempo limite das requisições (REQUEST_TIMEOUT_MS).
 const pollTimeout = () => Math.max(1, Math.min(50, Math.floor(Number(process.env.REQUEST_TIMEOUT_MS || 15000) / 1000) - 5));
@@ -60,11 +61,12 @@ export function startTelegramInbox({ store, getClient, logger = console, telegra
     if (/^\/status\b/.test(text)) {
       return reply(chatId, `📊 ${store.countPosts()} oferta(s) postada(s)\n📣 Destinos ativos: ${destinations(process.env.CANAL_POSTAGEM_ID).join(' e ') || 'nenhum'}`);
     }
-    if (!url) return reply(chatId, 'Cole um link de produto da Shopee, AliExpress ou Mercado Livre que eu preparo o post com o seu link de afiliado.');
+    if (!url) return reply(chatId, 'Cole um link de produto da Shopee, AliExpress, Mercado Livre ou Amazon que eu preparo o post com o seu link de afiliado. Na Amazon, escreva o título e o preço nas linhas abaixo do link.');
 
     const status = await reply(chatId, '🔎 Convertendo…');
     try {
-      const product = await resolveProduct(url, { store });
+      // Amazon sem API: título e preço podem vir nas linhas abaixo do link.
+      const product = await resolveProduct(url, { store, hints: hintsFromText(text, url) });
       const token = crypto.randomBytes(6).toString('hex');
       pending.set(token, { product, expiresAt: Date.now() + PREVIEW_TTL_MS });
       const warning = store.wasPosted(product.platform, product.id) ? [[{ text: '⚠️ Já foi postado antes', callback_data: 'noop' }]] : [];

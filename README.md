@@ -179,6 +179,21 @@ Links curtos (`s.shopee.com.br`, `s.click.aliexpress.com`, `mercadolivre.com/sec
 
 O Mercado Livre não possui endpoint público para criar link de afiliado. Portanto, o bot preserva o permalink oficial do item e anexa **somente** os parâmetros fornecidos por você; ele não inventa códigos de rastreamento.
 
+### Amazon
+
+1. Cadastre-se no **Amazon Associados** (associados.amazon.com.br). Sua **tag** (ID de rastreamento) termina em `-20`, ex.: `meusite-20`.
+2. Painel → Lojas e APIs → **Amazon** → cole a tag e salve.
+
+Com a tag, links da Amazon (`amazon.com.br`, `amzn.to`, `a.co`) viram links de afiliado em **Postar link**, no privado do Telegram e nos **Cupons**: produto vira `amazon.com.br/dp/ASIN?tag=sua-tag` e a tag de outro afiliado é trocada pela sua. A API de produtos da Amazon só é liberada depois de **3 vendas em 180 dias**; até lá não há busca automática nem preço/foto automáticos (o bot não raspa o site). No privado do Telegram, escreva o título e o preço nas linhas abaixo do link:
+
+```
+https://amzn.to/xxxx
+Fone JBL Tune 520BT
+R$ 199,90
+```
+
+Sem preço, o post diz "Confira o preço na Amazon" (a Amazon exige que preço mostrado esteja certo).
+
 ## Rodar sem Docker (Node 22.13+)
 
 ```bash

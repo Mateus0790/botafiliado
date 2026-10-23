@@ -71,7 +71,7 @@ test('converte o link da página do cupom em link de afiliado em cada loja', asy
   assert.equal(calls.length, 2);
   process.env.STORE_SHOPEE = 'false';
   await assert.rejects(toAffiliateLink('https://shopee.com.br/m/x'), /desativada/);
-  await assert.rejects(toAffiliateLink('https://amazon.com.br/x'), /não suportada/);
+  await assert.rejects(toAffiliateLink('https://magazineluiza.com.br/x'), /não suportada/);
 });
 
 test('salvar só gera o link de afiliado de novo quando o link da loja muda', async () => {
