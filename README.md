@@ -78,6 +78,8 @@ Em **Postagem automática**, ligue **Ofertas urgentes**. A cada 15 minutos (conf
 
 Nenhuma das APIs de afiliados entrega códigos de cupom, então eles são cadastrados no painel (página **Cupons**) com o link da página do cupom, campanha ou loja. Ao salvar, o link vira link de afiliado pela via oficial de cada loja: `generateShortLink` (Shopee), `aliexpress.affiliate.link.generate` (AliExpress) ou `matt_word`/`matt_tool` (Mercado Livre); um `meli.la` colado é mantido como está. Parâmetros de rastreio de terceiros (`utm_*`, `aff_*`, `matt_*`…) são removidos antes da conversão.
 
+Um cupom pode ter **vários códigos**, um por linha no formato `condição: CÓDIGO` (ex.: `R$ 100 OFF em R$ 399: MOVEIS100`), **passo a passo** na descrição (até 1000 caracteres), **imagem/banner** (link de uma imagem; no Telegram vai como foto), um **link extra** como "Link do carrinho" (também vira link de afiliado e ganha um segundo botão) e **Postar a partir de**: o cupom fica "agendado" e sai sozinho na hora marcada (ex.: cupons liberados à meia-noite), mesmo fora do horário de postagem.
+
 A mensagem mostra o código copiável (no Telegram, toque para copiar), a validade e o botão **Pegar cupom**. Com "Repetir a postagem", o bot reposta no intervalo escolhido, só dentro do horário de postagem, e para quando o cupom vence. O texto acima dos cupons é configurável em **Mensagem**.
 
 ### Cupons automáticos

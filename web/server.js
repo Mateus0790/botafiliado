@@ -262,7 +262,8 @@ export function createPanel({ store, bot, autopost, autoCoupons, urgent, logger 
       if (action === 'save') {
         const saved = await saveCoupon(store, body);
         let posted = null;
-        if (body.postNow) {
+        // Cupom agendado sai na hora marcada, não ao salvar.
+        if (body.postNow && couponStatus(saved) !== 'agendado') {
           try { posted = await postCoupon(store, saved, { client: bot.getClient() }); }
           catch (error) { posted = { sent: [], errors: [error.message] }; }
         }

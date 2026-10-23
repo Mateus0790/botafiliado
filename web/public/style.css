@@ -205,3 +205,5 @@ td.title { min-width: 220px; }
 
 .qr { display: block; width: 280px; max-width: 100%; background: #fff; padding: 8px; border-radius: 12px; margin: 12px 0; }
 .wa-targets { max-height: 320px; overflow-y: auto; }
+.coupon-image { display: block; max-width: 100%; max-height: 180px; border-radius: 8px; margin: 8px 0; }
+.pre-line { white-space: pre-line; }

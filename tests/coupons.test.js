@@ -107,3 +107,48 @@ test('mensagens: código copiável, validade e botão "Pegar cupom"', () => {
   const linkOnly = couponMessage({ ...coupon, platform: 'shopee', code: '' });
   assert.equal(linkOnly.components[0].toJSON().components[0].label, 'Ver promoção na Shopee');
 });
+
+test('vários códigos com condição, um por linha; o primeiro vira o code', async () => {
+  const { parseCodes } = await import('../jobs/coupons.js');
+  assert.deepEqual(parseCodes('R$ 100 OFF em R$ 399: MOVEIS100\n\nR$ 200 OFF em R$ 1599: MOVEIS200\nFRETE10'),
+    [{ label: 'R$ 100 OFF em R$ 399', code: 'MOVEIS100' }, { label: 'R$ 200 OFF em R$ 1599', code: 'MOVEIS200' }, { label: '', code: 'FRETE10' }]);
+  assert.throws(() => parseCodes('Desconto: código com espaço?'), /Código/);
+  const coupon = normalizeCoupon({ title: 'Cupons Mercado Livre', codes: 'R$ 100 OFF em R$ 399: MOVEIS100\nR$ 200 OFF em R$ 1599: MOVEIS200', url: 'https://meli.la/x',
+    extraUrl: 'https://s.shopee.com.br/carrinho', image: 'https://exemplo.com/banner.jpg', startsAt: '2026-11-11T03:00:00Z', expiresAt: '2026-11-12T03:00:00Z' });
+  assert.equal(coupon.code, 'MOVEIS100');
+  assert.equal(coupon.extraLabel, 'Link do carrinho');
+  assert.throws(() => normalizeCoupon({ title: 'x', url: 'https://meli.la/x', startsAt: '2026-11-12T00:00:00Z', expiresAt: '2026-11-11T00:00:00Z' }), /antes da validade/);
+});
+
+test('cupom com vários códigos, imagem e link extra em Telegram, Discord e WhatsApp', async () => {
+  const { whatsappCouponText } = await import('../publishers/whatsapp.js');
+  const coupon = { platform: 'mercadolivre', title: 'Cupons Mercado Livre', code: 'MOVEIS100', description: 'Resgate no app.',
+    codes: [{ label: 'R$ 100 OFF em R$ 399', code: 'MOVEIS100' }, { label: 'R$ 200 OFF em R$ 1599', code: 'MOVEIS200' }],
+    affiliateUrl: 'https://meli.la/abc', image: 'https://exemplo.com/banner.jpg', extraLabel: 'Link do carrinho', extraAffiliateUrl: 'https://meli.la/carrinho' };
+  assert.match(telegramCouponText(coupon), /Resgate no app\.\n\n🎟️ R\$ 100 OFF em R\$ 399: <code>MOVEIS100<\/code>\n🎟️ R\$ 200 OFF em R\$ 1599: <code>MOVEIS200<\/code>/);
+  const discord = couponMessage(coupon);
+  assert.equal(discord.embeds[0].data.image.url, 'https://exemplo.com/banner.jpg');
+  assert.deepEqual(discord.components[0].components.map((button) => button.data.url), ['https://meli.la/abc', 'https://meli.la/carrinho']);
+  assert.match(whatsappCouponText(coupon), /🛒 Link do carrinho:\nhttps:\/\/meli\.la\/carrinho$/);
+
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ method: String(url).split('/').pop(), payload: JSON.parse(options.body) });
+    return new Response(JSON.stringify({ ok: true, result: {} }));
+  };
+  const { sendTelegramCoupon } = await import('../publishers/telegram.js');
+  await sendTelegramCoupon(coupon, { env: { TELEGRAM_BOT_TOKEN: '1:a', TELEGRAM_CHAT_ID: '@canal' } });
+  assert.equal(calls[0].method, 'sendPhoto');
+  assert.equal(calls[0].payload.photo, 'https://exemplo.com/banner.jpg');
+  assert.deepEqual(calls[0].payload.reply_markup.inline_keyboard.map(([button]) => button.url), ['https://meli.la/abc', 'https://meli.la/carrinho']);
+});
+
+test('cupom agendado: fica "agendado" e sai uma vez na hora marcada, mesmo fora do horário', async () => {
+  const { startDue } = await import('../jobs/coupons.js');
+  const coupon = { active: true, startsAt: '2026-11-11T03:00:00Z', expiresAt: '2026-11-12T03:00:00Z', repeatHours: 0, lastPostedAt: null };
+  assert.equal(couponStatus(coupon, new Date('2026-11-11T02:59:00Z')), 'agendado');
+  assert.equal(startDue(coupon, new Date('2026-11-11T02:59:00Z')), false);
+  assert.equal(startDue(coupon, new Date('2026-11-11T03:00:30Z')), true);
+  assert.equal(startDue({ ...coupon, lastPostedAt: '2026-11-11T03:01:00Z' }, new Date('2026-11-11T03:05:00Z')), false, 'não repete');
+  assert.deepEqual(dueCoupons([{ ...coupon, repeatHours: 6 }], new Date('2026-11-11T03:00:30Z')), [], 'a primeira postagem é a do agendamento');
+});

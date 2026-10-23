@@ -29,7 +29,8 @@ export function whatsappText(product, { header = product.header ?? (process.env.
 
 export function whatsappCouponText(coupon, { header = process.env.COUPON_HEADER?.trim() || '🎟️ CUPOM DE DESCONTO!' } = {}) {
   const lines = couponLines(coupon, { code: (text) => `*${text}*` });
-  return [`*${header}*`, `*${coupon.title}*`, lines.join('\n'), `🎟️ ${couponButtonLabel(coupon)}:\n${coupon.affiliateUrl}`].filter(Boolean).join('\n\n');
+  return [`*${header}*`, `*${coupon.title}*`, lines.join('\n'), `🎟️ ${couponButtonLabel(coupon)}:\n${coupon.affiliateUrl}`,
+    coupon.extraAffiliateUrl && `🛒 ${coupon.extraLabel || 'Link do carrinho'}:\n${coupon.extraAffiliateUrl}`].filter(Boolean).join('\n\n');
 }
 
 /** Bloco <pre> (copia com um toque) + botão que abre o WhatsApp com o texto, quando o link cabe. */
@@ -52,5 +53,5 @@ export const sendWhatsappOffer = (product, { env = process.env } = {}) => (whats
   ? sendWhatsappWeb(whatsappText(product), { image: product.image })
   : sendKit(whatsappText(product), { image: product.image, env }));
 export const sendWhatsappCoupon = (coupon, { env = process.env } = {}) => (whatsappWebMode(env)
-  ? sendWhatsappWeb(whatsappCouponText(coupon))
-  : sendKit(whatsappCouponText(coupon), { env }));
+  ? sendWhatsappWeb(whatsappCouponText(coupon), { image: coupon.image })
+  : sendKit(whatsappCouponText(coupon), { image: coupon.image, env }));

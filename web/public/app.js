@@ -477,7 +477,7 @@ function renderPost(container) {
 // ---------- cupons ----------
 const REPEAT_OPTIONS = [[0, 'Não repetir'], [2, 'A cada 2 horas'], [4, 'A cada 4 horas'], [6, 'A cada 6 horas'], [12, 'A cada 12 horas'], [24, 'Uma vez por dia'], [48, 'A cada 2 dias']];
 const STORE_NAMES = { shopee: 'Shopee', aliexpress: 'AliExpress', mercadolivre: 'Mercado Livre' };
-const STATUS_KIND = { ativo: 'ok', pausado: 'off', expirado: 'danger' };
+const STATUS_KIND = { ativo: 'ok', agendado: 'warn', pausado: 'off', expirado: 'danger' };
 
 // datetime-local trabalha no fuso do navegador; o servidor guarda em ISO (UTC).
 const toLocalInput = (iso) => {
@@ -493,11 +493,16 @@ async function renderCoupons(container) {
   const form = h('form', { class: 'fields' },
     h('input', { type: 'hidden', name: 'id' }),
     h('div', { class: 'fields-grid' },
-      h('label', {}, 'Título *', h('input', { name: 'title', required: true, maxlength: '80', placeholder: 'Ex.: R$ 20 OFF em eletrônicos' })),
-      h('label', {}, 'Código do cupom', h('input', { name: 'code', maxlength: '40', placeholder: 'Ex.: SHOPEE20 (vazio se for só link)', autocomplete: 'off' })),
+      h('label', { class: 'field wide' }, 'Título *', h('input', { name: 'title', required: true, maxlength: '80', placeholder: 'Ex.: Cupons Mercado Livre' })),
+      h('label', { class: 'field wide' }, 'Códigos (um por linha: condição: CÓDIGO; vazio se for só link)',
+        h('textarea', { name: 'codes', class: 'short', autocomplete: 'off', placeholder: 'R$ 100 OFF em R$ 399: MOVEIS100\nR$ 200 OFF em R$ 1599: MOVEIS200' })),
       h('label', { class: 'field wide' }, 'Link da página do cupom, campanha ou loja *',
         h('input', { name: 'url', type: 'url', required: true, placeholder: 'https://shopee.com.br/… ou meli.la/…' })),
-      h('label', { class: 'field wide' }, 'Descrição', h('textarea', { name: 'description', maxlength: '300', class: 'short', placeholder: 'Ex.: Desconto de R$ 20 em compras acima de R$ 99. Limitado.' })),
+      h('label', { class: 'field wide' }, 'Descrição ou passo a passo', h('textarea', { name: 'description', maxlength: '1000', placeholder: 'Ex.: Resgate agora no app para usar à meia-noite:\n1. Abra o link no app\n2. Clique em "Mais"\n3. Entre em "Cupons relâmpago"\n4. Resgate o cupom' })),
+      h('label', {}, 'Nome do link extra', h('input', { name: 'extraLabel', maxlength: '40', placeholder: 'Link do carrinho' })),
+      h('label', {}, 'Link extra (opcional, vira link de afiliado)', h('input', { name: 'extraUrl', type: 'url', placeholder: 'https://s.shopee.com.br/…' })),
+      h('label', { class: 'field wide' }, 'Imagem / banner (link de uma imagem, opcional)', h('input', { name: 'image', type: 'url', placeholder: 'https://…/banner.jpg' })),
+      h('label', {}, 'Postar a partir de (agendar)', h('input', { name: 'startsAt', type: 'datetime-local' })),
       h('label', {}, 'Válido até', h('input', { name: 'expiresAt', type: 'datetime-local' })),
       h('label', {}, 'Repetir a postagem', h('select', { name: 'repeatHours' }, REPEAT_OPTIONS.map(([value, label]) => h('option', { value }, label))))),
     h('label', { class: 'switch' }, h('input', { name: 'postNow', type: 'checkbox', checked: true }), 'Postar agora ao salvar'),
@@ -515,8 +520,11 @@ async function renderCoupons(container) {
   };
   const editCoupon = (coupon) => {
     form.elements.id.value = coupon.id;
-    for (const key of ['title', 'code', 'url', 'description']) form.elements[key].value = coupon[key] ?? '';
+    for (const key of ['title', 'url', 'description', 'extraLabel', 'extraUrl', 'image']) form.elements[key].value = coupon[key] ?? '';
+    const codes = coupon.codes?.length ? coupon.codes : coupon.code ? [{ label: '', code: coupon.code }] : [];
+    form.elements.codes.value = codes.map((item) => (item.label ? `${item.label}: ${item.code}` : item.code)).join('\n');
     form.elements.expiresAt.value = toLocalInput(coupon.expiresAt);
+    form.elements.startsAt.value = toLocalInput(coupon.startsAt);
     form.elements.repeatHours.value = String(coupon.repeatHours);
     form.elements.postNow.checked = false;
     form.elements.cancel.hidden = false;
@@ -526,9 +534,11 @@ async function renderCoupons(container) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const values = Object.fromEntries(['id', 'title', 'code', 'url', 'description'].map((key) => [key, form.elements[key].value]));
+    const values = Object.fromEntries(['id', 'title', 'codes', 'url', 'description', 'extraLabel', 'extraUrl', 'image'].map((key) => [key, form.elements[key].value]));
     const expires = form.elements.expiresAt.value;
+    const starts = form.elements.startsAt.value;
     const body = { ...values, id: values.id || undefined, expiresAt: expires ? new Date(expires).toISOString() : null,
+      startsAt: starts ? new Date(starts).toISOString() : null,
       repeatHours: Number(form.elements.repeatHours.value), postNow: form.elements.postNow.checked };
     try {
       const data = await withBusy(form.elements.save, () => api('/api/coupons/save', body));
@@ -549,16 +559,20 @@ async function renderCoupons(container) {
     list.replaceChildren(...items.map((coupon) => {
       const result = h('div', { class: 'result' });
       const meta = [STORE_NAMES[coupon.platform] ?? coupon.platform,
+        coupon.startsAt ? `posta em ${fmtDate(coupon.startsAt)}` : null,
         coupon.expiresAt ? `válido até ${fmtDate(coupon.expiresAt)}` : 'sem validade',
         REPEAT_OPTIONS.find(([value]) => value === coupon.repeatHours)?.[1] ?? `a cada ${coupon.repeatHours} h`,
-        coupon.postCount ? `postado ${coupon.postCount}× · último ${fmtDate(coupon.lastPostedAt)}` : 'ainda não postado'];
+        coupon.postCount ? `postado ${coupon.postCount}× · último ${fmtDate(coupon.lastPostedAt)}` : 'ainda não postado'].filter(Boolean);
+      const codes = coupon.codes?.length ? coupon.codes : coupon.code ? [{ label: '', code: coupon.code }] : [];
       const action = (label, task, kind = '') => h('button', { class: `btn ${kind}`, onclick: async (event) => {
         try { await withBusy(event.currentTarget, task); } catch (error) { result.replaceChildren(h('div', { class: 'notice error' }, error.message)); }
       } }, label);
       return h('div', { class: 'coupon' },
         h('div', { class: 'coupon-head' }, h('h3', {}, coupon.title), statusPill(coupon.status, STATUS_KIND[coupon.status] ?? 'off')),
-        coupon.code ? h('div', { class: 'coupon-code' }, coupon.code) : null,
-        coupon.description ? h('p', { class: 'muted' }, coupon.description) : null,
+        coupon.image ? h('img', { class: 'coupon-image', src: coupon.image, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' }) : null,
+        ...codes.map((item) => h('div', {}, item.label ? h('span', { class: 'muted' }, `${item.label}: `) : null, h('span', { class: 'coupon-code' }, item.code))),
+        coupon.description ? h('p', { class: 'muted pre-line' }, coupon.description) : null,
+        coupon.extraAffiliateUrl ? h('a', { href: coupon.extraAffiliateUrl, target: '_blank', rel: 'noopener noreferrer', class: 'meta' }, `${coupon.extraLabel || 'Link extra'}: ${coupon.extraAffiliateUrl}`) : null,
         h('div', { class: 'meta' }, meta.join(' · ')),
         h('a', { href: coupon.affiliateUrl, target: '_blank', rel: 'noopener noreferrer', class: 'meta' }, coupon.affiliateUrl),
         h('div', { class: 'actions' },
